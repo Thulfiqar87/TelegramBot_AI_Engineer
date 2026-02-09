@@ -27,13 +27,18 @@ pdf_generator = PDFGenerator()
 
 async def post_init(application: Application) -> None:
     """Initialize the database and browser on startup."""
+    print("DEBUG: Entering post_init", flush=True)
     try:
+        print("DEBUG: Initializing DB...", flush=True)
         await init_db()
         logger.info("Database initialized.")
+        print("DEBUG: DB initialized. Starting browser...", flush=True)
         await pdf_generator.start_browser()
         logger.info("PDF Browser initialized.")
+        print("DEBUG: Browser initialized.", flush=True)
     except Exception as e:
         logger.critical(f"Failed to initialize application: {e}")
+        print(f"DEBUG: post_init failed: {e}", flush=True)
         # We should probably exit if critical init fails, but let's log it first.
         raise e
 

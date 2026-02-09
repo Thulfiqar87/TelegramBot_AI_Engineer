@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 
 # Install system dependencies for Playwright and others
+ENV PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \

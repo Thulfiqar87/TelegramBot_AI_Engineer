@@ -27,20 +27,20 @@ pdf_generator = PDFGenerator()
 
 async def post_init(application: Application) -> None:
     """Initialize the database and browser on startup."""
-    print("DEBUG: Entering post_init", flush=True)
+    logger.info("DEBUG: Entering post_init")
     try:
-        print("DEBUG: Initializing DB...", flush=True)
+        logger.info("DEBUG: Initializing DB...")
         await init_db()
         logger.info("Database initialized.")
-        print("DEBUG: DB initialized. Starting browser...", flush=True)
+        logger.info("DEBUG: DB initialized. Starting browser...")
         await pdf_generator.start_browser()
         logger.info("PDF Browser initialized.")
-        print("DEBUG: Browser initialized.", flush=True)
+        logger.info("DEBUG: Browser initialized.")
     except Exception as e:
         logger.critical(f"Failed to initialize application: {e}")
-        print(f"DEBUG: post_init failed: {e}", flush=True)
-        # We should probably exit if critical init fails, but let's log it first.
-        raise e
+        logger.error("Continuing startup despite initialization failure (Partial Mode).")
+        # Do NOT raise e, so we can see what's happening.
+        # raise e
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a welcome message when the command /start is issued."""
@@ -291,10 +291,13 @@ async def save_log(update: Update):
 
 def main() -> None:
     """Start the bot."""
+    logger.info("DEBUG: Starting main function...")
     try:
         Config.validate()
+        logger.info("DEBUG: Config validated.")
         
         application = Application.builder().token(Config.TELEGRAM_BOT_TOKEN).post_init(post_init).build()
+        logger.info("DEBUG: Application built.")
 
         # Commands
         application.add_handler(CommandHandler("start", start))

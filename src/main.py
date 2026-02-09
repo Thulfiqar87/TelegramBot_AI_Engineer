@@ -27,10 +27,15 @@ pdf_generator = PDFGenerator()
 
 async def post_init(application: Application) -> None:
     """Initialize the database and browser on startup."""
-    await init_db()
-    logger.info("Database initialized.")
-    await pdf_generator.start_browser()
-    logger.info("PDF Browser initialized.")
+    try:
+        await init_db()
+        logger.info("Database initialized.")
+        await pdf_generator.start_browser()
+        logger.info("PDF Browser initialized.")
+    except Exception as e:
+        logger.critical(f"Failed to initialize application: {e}")
+        # We should probably exit if critical init fails, but let's log it first.
+        raise e
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a welcome message when the command /start is issued."""

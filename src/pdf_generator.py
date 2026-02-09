@@ -12,7 +12,7 @@ class PDFGenerator:
     async def start_browser(self):
         """Launches the browser instance."""
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch()
+        self.browser = await self.playwright.chromium.launch(args=['--no-sandbox'])
 
     async def close_browser(self):
         """Closes the browser instance."""

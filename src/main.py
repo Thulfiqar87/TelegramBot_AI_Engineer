@@ -356,7 +356,9 @@ async def manual_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def set_safety_channel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sets the current channel as the broadcast channel for safety advice."""
     user_id = update.effective_user.id
+    logger.info(f"DEBUG: set_safety_channel called by {user_id}. Admins: {Config.ADMIN_IDS}")
     if user_id not in Config.ADMIN_IDS:
+        logger.warning(f"DEBUG: Access denied. User {user_id} not in {Config.ADMIN_IDS}")
         return
     
     chat_id = update.effective_chat.id

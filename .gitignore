@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment Variables
+.env
+
+# Data & Logs
+data/
+logs/
+reports/
+
+# Docker
+.docker/
+
+# IDEs
+.vscode/
+.idea/

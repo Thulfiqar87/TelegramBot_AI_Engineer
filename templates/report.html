@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Construction Site Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="header-container">
+        <div class="header-left">
+            <p><strong>Date:</strong> {{ date }}</p>
+            <p><strong>Report No:</strong> {{ report_id }}</p>
+        </div>
+        <div class="logo-container">
+            <img src="src/logo.png" alt="Burj Nawas Logo" class="logo">
+        </div>
+        <div class="title-container">
+            <h1>مشروع برج نؤاس</h1>
+            <h2>التقرير اليومي</h2>
+        </div>
+    </div>
+
+    <!-- Section 1: Weather -->
+    <div class="section">
+        <h3>1. حالة الطقس (Weather Conditions)</h3>
+
+        <div class="subsection">
+
+            {% if weather.current %}
+            <div class="weather-current-grid">
+                <div class="weather-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/7794/7794499.png" alt="Temp Icon"
+                        class="weather-icon-small">
+                    <div>
+                        <span class="label">درجة الحرارة</span>
+                        <span class="value">{{ weather.current.main.temp }}°C</span>
+                    </div>
+                </div>
+                <div class="weather-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2011/2011448.png" alt="Wind Icon"
+                        class="weather-icon-small">
+                    <div>
+                        <span class="label">سرعة الرياح</span>
+                        <span class="value">{{ weather.current.wind.speed }} m/s</span>
+                    </div>
+                </div>
+                <div class="weather-item">
+                    <!-- Use the icon from API if available, else generic -->
+                    <img src="{{ weather.current.weather[0].icon_url }}" alt="Condition Icon"
+                        class="weather-icon-small">
+                    <div>
+                        <span class="label">الحالة</span>
+                        <span class="value">{{ weather.current.weather[0].description }}</span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p>بيانات غير متاحة</p>
+            {% endif %}
+        </div>
+
+        <!-- Section 2: OpenProject -->
+        <div class="section">
+            <h3>2. بيانات المشروع (Project Data)</h3>
+
+            <div class="subsection">
+                <h4>الأعمال النشطة حالياً (Active Work Packages)</h4>
+                <ul>
+                    {% for task in projects.active %}
+                    <li><strong>{{ task.subject }}</strong> - {{ task.status }} (Due: {{ task.dueDate }})</li>
+                    {% else %}
+                    <li>لا يوجد أعمال نشطة حالياً.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="subsection">
+                <h4>الأعمال القادمة (Incoming Work Packages)</h4>
+                <ul>
+                    {% for task in projects.incoming %}
+                    <li><strong>{{ task.subject }}</strong> - {{ task.status }} (Start: {{ task.startDate }})</li>
+                    {% else %}
+                    <li>لا يوجد أعمال قادمة مسجلة.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Section 3: Chat Summary -->
+        <div class="section">
+            <h3>3. ملخص أنشطة الموقع (Site Activities Summary)</h3>
+
+            <div class="subsection">
+                <h4>القوى العاملة والمعدات (Site Manpower and Machinery)</h4>
+                <div class="content">
+                    {{ site_manpower_machinery | safe }}
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h4>أنشطة الموقع (Site Activities)</h4>
+                <div class="content">
+                    {{ site_activities | safe }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Photos & Analysis -->
+        <div class="section">
+            <h3>4. التوثيق الصوري (Photo Documentation)</h3>
+
+            <div class="photo-grid">
+                {% for photo in photos %}
+                <div class="photo-item">
+                    <img src="{{ photo.abs_path }}" class="site-photo">
+                    <div class="photo-number">صورة {{ loop.index }}</div>
+                </div>
+                {% else %}
+                <p>لا يوجد صور موثقة اليوم.</p>
+                {% endfor %}
+            </div>
+
+            {% if photos %}
+            <div class="photo-analysis-block">
+                <h4>تحليل الصور (Photo Analysis)</h4>
+                {% for photo in photos %}
+                <div class="analysis-item">
+                    <strong>صورة {{ loop.index }}:</strong>
+                    <span>{{ photo.analysis | safe }}</span>
+                    <br>
+                    <small>Time: {{ photo.timestamp }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>تم انشاء التقرير بواسطة AI Site Coordinator © {{ date }} برج نؤاس. جميع الحقوق محفوظة.</p>
+        </div>
+</body>
+
+</html>

@@ -1,0 +1,17 @@
+services:
+  bot:
+    build: .
+    container_name: burj_nawas_bot
+    restart: always
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - OPENPROJECT_URL=${OPENPROJECT_URL}
+      - OPENPROJECT_API_KEY=${OPENPROJECT_API_KEY}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      - OPENWEATHER_LAT=${OPENWEATHER_LAT}
+      - OPENWEATHER_LON=${OPENWEATHER_LON}

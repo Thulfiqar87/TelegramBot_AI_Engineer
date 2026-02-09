@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Construction Site Report</title>
+    <link rel="stylesheet" href="templates/style.css">
+</head>
+
+<body>
+    <div class="header-container">
+        <div class="header-left">
+            <p><strong>Date:</strong> 2026-02-09</p>
+            <p><strong>Report No:</strong> BN-FEB-26-001</p>
+        </div>
+        <div class="logo-container">
+            <img src="src/logo.png" alt="Burj Nawas Logo" class="logo">
+        </div>
+        <div class="title-container">
+            <h1>مشروع برج نؤاس</h1>
+            <h2>التقرير اليومي</h2>
+        </div>
+    </div>
+
+    <!-- Section 1: Weather -->
+    <div class="section">
+        <h3>1. حالة الطقس (Weather Conditions)</h3>
+
+        <div class="subsection">
+
+            
+            <div class="weather-current-grid">
+                <div class="weather-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/7794/7794499.png" alt="Temp Icon"
+                        class="weather-icon-small">
+                    <div>
+                        <span class="label">درجة الحرارة</span>
+                        <span class="value">28°C</span>
+                    </div>
+                </div>
+                <div class="weather-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2011/2011448.png" alt="Wind Icon"
+                        class="weather-icon-small">
+                    <div>
+                        <span class="label">سرعة الرياح</span>
+                        <span class="value">5.2 m/s</span>
+                    </div>
+                </div>
+                <div class="weather-item">
+                    <!-- Use the icon from API if available, else generic -->
+                    <img src="http://openweathermap.org/img/wn/01d@2x.png" alt="Condition Icon"
+                        class="weather-icon-small">
+                    <div>
+                        <span class="label">الحالة</span>
+                        <span class="value">Sunny</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Section 2: OpenProject -->
+        <div class="section">
+            <h3>2. بيانات المشروع (Project Data)</h3>
+
+            <div class="subsection">
+                <h4>الأعمال النشطة حالياً (Active Work Packages)</h4>
+                <ul>
+                    
+                    <li><strong>Foundation Excavation</strong> - In Progress (Due: 2026-02-15)</li>
+                    
+                    <li><strong>Material Delivery</strong> - Scheduled (Due: 2026-02-12)</li>
+                    
+                </ul>
+            </div>
+
+            <div class="subsection">
+                <h4>الأعمال القادمة (Incoming Work Packages)</h4>
+                <ul>
+                    
+                    <li><strong>Steel Framework Installation</strong> - Pending (Start: 2026-02-16)</li>
+                    
+                </ul>
+            </div>
+        </div>
+
+        <!-- Section 3: Chat Summary -->
+        <div class="section">
+            <h3>3. ملخص أنشطة الموقع (Site Activities Summary)</h3>
+
+            <div class="subsection">
+                <h4>القوى العاملة والمعدات (Site Manpower and Machinery)</h4>
+                <div class="content">
+                    <ul><li><strong>Manpower:</strong> 25 Workers, 3 Engineers, 2 Supervisors.</li><li><strong>Machinery:</strong> 2 Excavators, 1 Tower Crane, 3 Dump Trucks.</li></ul>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h4>أنشطة الموقع (Site Activities)</h4>
+                <div class="content">
+                    <ul><li>Morning safety briefing conducted.</li><li>Excavation commenced in Sector B.</li><li>Concrete trucks arrived on site at 10:00 AM.</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Photos & Analysis -->
+        <div class="section">
+            <h3>4. التوثيق الصوري (Photo Documentation)</h3>
+
+            <div class="photo-grid">
+                
+                <div class="photo-item">
+                    <img src="samples/site_excavation.png" class="site-photo">
+                    <div class="photo-number">صورة 1</div>
+                </div>
+                
+                <div class="photo-item">
+                    <img src="samples/steel_rebar.png" class="site-photo">
+                    <div class="photo-number">صورة 2</div>
+                </div>
+                
+                <div class="photo-item">
+                    <img src="samples/concrete_pour.png" class="site-photo">
+                    <div class="photo-number">صورة 3</div>
+                </div>
+                
+                <div class="photo-item">
+                    <img src="samples/crane_lift.png" class="site-photo">
+                    <div class="photo-number">صورة 4</div>
+                </div>
+                
+            </div>
+
+            
+            <div class="photo-analysis-block">
+                <h4>تحليل الصور (Photo Analysis)</h4>
+                
+                <div class="analysis-item">
+                    <strong>صورة 1:</strong>
+                    <span>Excavation work in progress. Heavy machinery operating safely within designated zones.</span>
+                    <br>
+                    <small>Time: 08:30 AM</small>
+                </div>
+                
+                <div class="analysis-item">
+                    <strong>صورة 2:</strong>
+                    <span>Steel reinforcement bars being installed and tied according to structural drawings.</span>
+                    <br>
+                    <small>Time: 09:45 AM</small>
+                </div>
+                
+                <div class="analysis-item">
+                    <strong>صورة 3:</strong>
+                    <span>Concrete pouring for the main foundation slab. Workers are wearing appropriate PPE.</span>
+                    <br>
+                    <small>Time: 11:15 AM</small>
+                </div>
+                
+                <div class="analysis-item">
+                    <strong>صورة 4:</strong>
+                    <span>Tower crane lifting materials to the upper levels. Clear weather conditions suitable for lifting operations.</span>
+                    <br>
+                    <small>Time: 01:30 PM</small>
+                </div>
+                
+            </div>
+            
+        </div>
+
+        <div class="footer">
+            <p>تم انشاء التقرير بواسطة AI Site Coordinator © 2026-02-09 برج نؤاس. جميع الحقوق محفوظة.</p>
+        </div>
+</body>
+
+</html>

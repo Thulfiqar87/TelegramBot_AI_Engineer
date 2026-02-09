@@ -1,0 +1,12 @@
+python-telegram-bot[job-queue]
+google-generativeai
+playwright
+jinja2
+requests
+python-dotenv
+pydantic
+sqlalchemy
+aiosqlite
+tenacity
+pydantic-settings
+aiohttp

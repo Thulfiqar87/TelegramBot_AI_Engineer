@@ -1,0 +1,10 @@
+services:
+  site-coordinator:
+    build: .
+    container_name: burj_nawas_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    network_mode: host # For local OpenProject access (192.168.1.8)

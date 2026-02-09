@@ -10,3 +10,4 @@ aiosqlite
 tenacity
 pydantic-settings
 aiohttp
+Pillow

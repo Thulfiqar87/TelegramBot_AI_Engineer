@@ -9,9 +9,8 @@ logger = logging.getLogger(__name__)
 class AIEngine:
     def __init__(self):
         genai.configure(api_key=Config.GOOGLE_API_KEY)
-        # Try to use a more stable model name or list available models
-        # Using 'gemini-1.5-flash-latest' or 'gemini-pro' as fallback
-        self.model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        # Using standard model name with updated library
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):
         """

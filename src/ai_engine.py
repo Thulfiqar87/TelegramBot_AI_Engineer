@@ -12,7 +12,8 @@ class AIEngine:
     def __init__(self):
         # Initialize the new GenAI Client
         self.client = genai.Client(api_key=Config.GOOGLE_API_KEY)
-        self.model_name = 'gemini-1.5-flash'
+        # Switching to Pro model as Flash availability is inconsistent
+        self.model_name = 'gemini-1.5-pro'
 
     def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):
         """

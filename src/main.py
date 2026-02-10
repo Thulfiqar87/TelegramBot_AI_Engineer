@@ -331,6 +331,10 @@ def main() -> None:
             # Schedule Activity Reminder at 10:00 AM Iraq Time (approximately 7:00 AM UTC)
             application.job_queue.run_daily(check_activity_and_remind, time=time(7, 0))
 
+        # Restore handlers
+        application.add_handler(CommandHandler("report", manual_report))
+        application.add_handler(CommandHandler("set_safety_channel", set_safety_channel))
+
         logger.info("DEBUG: Starting polling...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
         logger.info("DEBUG: Polling stopped.")

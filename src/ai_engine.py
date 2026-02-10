@@ -1,28 +1,30 @@
-from google import genai
-from google.genai import types
+import dashscope
+from dashscope import MultiModalConversation, Generation
 from src.config import Config
 import json
 import logging
-from PIL import Image
-import io
+import os
+from http import HTTPStatus
 
 logger = logging.getLogger(__name__)
 
 class AIEngine:
     def __init__(self):
-        # Initialize the new GenAI Client
-        self.client = genai.Client(api_key=Config.GOOGLE_API_KEY)
-        # Switching to Pro model as Flash availability is inconsistent
-        self.model_name = 'gemini-1.5-pro'
+        # Configure Dashscope API Key
+        dashscope.api_key = Config.DASHSCOPE_API_KEY
+        # Models
+        self.vision_model = 'qwen-vl-plus' # Multimodal (Text + Image)
+        self.text_model = 'qwen-plus'      # Text only (summary, safety tips)
 
     def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):
         """
-        Analyzes site data using Google GenAI SDK.
+        Analyzes site data using Qwen VL Plus (Alibaba Cloud).
         Incorporates weather and project context.
         """
-        logger.info(f"Analyzing site data: Text={bool(text_input)}, Image={bool(image_input)}")
+        logger.info(f"Analyzing site data with Qwen: Text={bool(text_input)}, Image={bool(image_input)}")
         
-        context = (
+        # Build Context
+        context_intro = (
             "بصفتك المنسق الذكي والمشرف العام لمشروع برج نؤاس، دورك جوهري في ضمان سير العمل بكفاءة وأمان.\n"
             "مسؤولياتك تشمل:\n"
             "1. تحليل بيانات الموقع اليومية ومطابقتها مع المعايير الهندسية.\n"
@@ -33,42 +35,58 @@ class AIEngine:
             "قم بتحليل البيانات التالية بناءً على هذا الدور:\n"
         )
         
+        context_data = ""
         if weather_data:
-            context += f"سياق الطقس: {json.dumps(weather_data, ensure_ascii=False)}\n"
+            context_data += f"سياق الطقس: {json.dumps(weather_data, ensure_ascii=False)}\n"
         
         if project_data:
-            context += f"سياق المشروع: {json.dumps(project_data, ensure_ascii=False)}\n"
+            context_data += f"سياق المشروع: {json.dumps(project_data, ensure_ascii=False)}\n"
 
-        contents = [context]
-        if text_input:
-            contents.append(f"المدخلات النصية: {text_input}")
-            
+        # Prepare Content for Qwen VL
+        # Qwen VL expects messages format: [{'role': 'user', 'content': [{'image': '...'}, {'text': '...'}]}]
+        
+        user_content = []
+        
+        # Add Image First if present
         if image_input:
             if isinstance(image_input, str):
-                # If path string, try to load as PIL image
-                try:
-                    img = Image.open(image_input)
-                    contents.append(img)
-                except Exception as e:
-                    logger.error(f"Error loading image from path: {e}")
+                # Dashscope prefers local file paths with 'file://' prefix or URLs
+                # Since we are in docker, absolute path is good but needs schema
+                img_path = os.path.abspath(image_input)
+                user_content.append({'image': f"file://{img_path}"})
             else:
-                # Assume it's already a suitable image object or bytes
-                contents.append(image_input)
+                # If it's bytes or object, Qwen SDK might support it or we might need to save tmp.
+                # Assuming file path for simplicity as main.py saves it.
+                logger.warning("Qwen VL received non-path image input. Skipping image.")
+
+        # Add Text
+        full_text = context_intro + context_data
+        if text_input:
+            full_text += f"\nالمدخلات النصية: {text_input}"
+        
+        user_content.append({'text': full_text})
+
+        messages = [
+            {'role': 'system', 'content': [{'text': 'You are the Site Coordinator AI.'}]},
+            {'role': 'user', 'content': user_content}
+        ]
 
         try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=contents
-            )
-            return response.text
+            response = MultiModalConversation.call(model=self.vision_model, messages=messages)
+            
+            if response.status_code == HTTPStatus.OK:
+                return response.output.choices[0].message.content[0]['text']
+            else:
+                logger.error(f"Qwen API Error: {response.code} - {response.message}")
+                return f"عذراً، حدث خطأ في النظام: {response.message}"
+                
         except Exception as e:
-            logger.error(f"AI Error: {e}")
+            logger.error(f"AI Error (Qwen): {e}")
             return "عذراً، حدث خطأ أثناء تحليل البيانات."
 
     def summarize_logs(self, chat_logs):
         """
-        Summarizes chat logs into Manpower/Machinery and Site Activities.
-        Returns a dictionary with keys: 'site_manpower_machinery' and 'site_activities'.
+        Summarizes chat logs into Manpower/Machinery and Site Activities using Qwen-Plus.
         """
         default_response = {
             "site_manpower_machinery": "<ul><li>لا تتوفر بيانات</li></ul>",
@@ -87,27 +105,31 @@ class AIEngine:
         )
         
         try:
-            # Request JSON response
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt_text,
-                config=types.GenerateContentConfig(response_mime_type="application/json")
+            # Use Text Model for Summary
+            response = Generation.call(
+                model=self.text_model,
+                prompt=prompt_text,
+                result_format='message' # To get standard openai-like message format in output
             )
             
-            text_response = response.text.strip()
-            # Clean up markdown if present (though JSON mode usually avoids it)
-            if text_response.startswith("```json"):
-                text_response = text_response[7:-3].strip()
-            elif text_response.startswith("```"):
-                text_response = text_response[3:-3].strip()
-                
-            return json.loads(text_response)
+            if response.status_code == HTTPStatus.OK:
+                text_response = response.output.choices[0].message.content.strip()
+                # Clean JSON
+                if text_response.startswith("```json"):
+                    text_response = text_response[7:-3].strip()
+                elif text_response.startswith("```"):
+                    text_response = text_response[3:-3].strip()
+                return json.loads(text_response)
+            else:
+                 logger.error(f"Qwen Summary Error: {response.message}")
+                 return default_response
+
         except Exception as e:
             logger.error(f"AI Summary Error: {e}")
             return default_response
 
     def get_safety_advice(self):
-        """Generates a short, professional safety tip in Arabic."""
+        """Generates a short, professional safety tip in Arabic using Qwen-Plus."""
         prompt = (
             "You are a Site Safety Manager for a high-rise construction project. "
             "Provide a single, short, impactful safety advice tip in Arabic for the site workers. "
@@ -115,11 +137,18 @@ class AIEngine:
             "Start with an emoji. Keep it under 30 words."
         )
         try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt
+            response = Generation.call(
+                model=self.text_model,
+                prompt=prompt,
+                result_format='message'
             )
-            return response.text.strip()
+            
+            if response.status_code == HTTPStatus.OK:
+                return response.output.choices[0].message.content.strip()
+            else:
+                logger.error(f"Qwen Safety Error: {response.message}")
+                return "⚠️ **تذكير بالسلامة:** تأكد من ارتداء الخوذة وحذاء السلامة في جميع الأوقات."
+                
         except Exception as e:
             logger.error(f"Error generating safety advice: {e}")
             return "⚠️ **تذكير بالسلامة:** تأكد من ارتداء الخوذة وحذاء السلامة في جميع الأوقات."

@@ -1,5 +1,5 @@
 python-telegram-bot[job-queue]
-google-genai
+dashscope>=1.14.0
 playwright
 jinja2
 requests

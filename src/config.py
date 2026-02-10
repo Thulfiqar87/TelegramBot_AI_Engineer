@@ -3,7 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
-    GOOGLE_API_KEY: str
+    GOOGLE_API_KEY: str = "deprecated" # Keeping to avoid breaking if .env still has it, but unused
+    DASHSCOPE_API_KEY: str
     OPENPROJECT_URL: str
     OPENPROJECT_API_KEY: str
     OPENWEATHER_API_KEY: str

@@ -60,17 +60,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # Save log
     await save_log(update)
 
-    # Contextual analysis
-    try:
-        # For chat flow, getting forecast summary might be useful too
-        weather = await weather_client.get_current_weather()
-        projects = await openproject_client.get_summary()
-        
-        response = ai_engine.analyze_site_data(text_input=text, weather_data=weather, project_data=projects)
-        await update.message.reply_text(response)
-    except Exception as e:
-        logger.error(f"Error in handle_message: {e}")
-        await update.message.reply_text("Sorry, I encountered an error analyzing your message.")
+    # Contextual analysis - REMOVED per user request
+    # The AI will now only analyze data when generating the report.
+    # We just acknowledge receipt.
+    # await update.message.reply_text("✅") # Optional acknowledgement
+    pass
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle photo uploads."""
@@ -105,23 +99,16 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         await update.message.reply_text("Photo received and saved. Analyzing contents for report...")
         
-        # Image analysis logic
-        analysis_prompt = "Analyze this construction site photo. Describe safety gear usage, progress, and any hazards."
-        if caption:
-            analysis_prompt += f" User caption: {caption}"
-
-        analysis = ai_engine.analyze_site_data(
-            text_input=analysis_prompt,
-            image_input=file_path
-        )
+        # Image analysis logic - REMOVED per user request
+        # Analysis will happen during report generation
         
-        # Save analysis metadata to DB
+        # Save photo metadata to DB (without analysis for now)
         try:
             async with AsyncSessionLocal() as session:
                 photo_entry = PhotoMetadata(
                     file_unique_id=photo_file.file_unique_id,
                     file_path=file_path,
-                    analysis=analysis,
+                    analysis="", # Empty analysis for now
                     caption=caption or "",
                     timestamp=datetime.now(),
                     date_str=date_str
@@ -131,7 +118,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         except Exception as e:
             logger.error(f"Error saving photo metadata to DB: {e}")
 
-        await update.message.reply_text(f"Analysis Complete: {analysis[:100]}...")
+        # await update.message.reply_text(f"Analysis Complete: {analysis[:100]}...")
+        await update.message.reply_text("📸 Photo saved.")
         
     except Exception as e:
         logger.error(f"Error in handle_photo: {e}")
@@ -227,6 +215,26 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
             photos_db = result.scalars().all()
             
             for p in photos_db:
+                # Lazy Analysis: If analysis is missing, do it now
+                if not p.analysis:
+                    logger.info(f"Performing lazy analysis for photo {p.file_unique_id}")
+                    try:
+                        analysis_prompt = "Analyze this construction site photo. Describe safety gear usage, progress, and any hazards."
+                        if p.caption:
+                            analysis_prompt += f" User caption: {p.caption}"
+                            
+                        # Perform analysis
+                        p.analysis = ai_engine.analyze_site_data(
+                            text_input=analysis_prompt,
+                            image_input=p.file_path
+                        )
+                        # Update DB
+                        session.add(p)
+                        await session.commit()
+                    except Exception as e:
+                        logger.error(f"Error in lazy photo analysis: {e}")
+                        p.analysis = "Analysis failed during report generation."
+
                 photos_data.append({
                     "file_path": p.file_path,
                     "abs_path": os.path.abspath(p.file_path),

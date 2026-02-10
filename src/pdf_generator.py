@@ -39,7 +39,7 @@ class PDFGenerator:
             await self.start_browser()
 
         # Inject Logo
-        logo_path = os.path.join("static", "logo.png")
+        logo_path = os.path.join("templates", "src", "logo.png")
         data['logo_b64'] = await self._encode_file(logo_path)
 
         template = self.env.get_template("report.html")

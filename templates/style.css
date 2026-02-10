@@ -10,9 +10,16 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 3px solid #0056b3;
-    padding-bottom: 20px;
+    background-color: #1a6563;
+    /* Restored Green */
+    color: #e8bc91;
+    /* Restored Gold text */
+    border-bottom: 3px solid #145250;
+    padding: 20px;
+    /* Increased padding for bg */
     margin-bottom: 30px;
+    border-radius: 5px;
+    /* Added radius for look */
 }
 
 .logo {
@@ -20,13 +27,15 @@ body {
 }
 
 .title-container h1 {
-    color: #004085;
+    color: #ffffff;
+    /* White on Green */
     margin: 0;
     font-size: 24px;
 }
 
 .title-container h2 {
-    color: #6c757d;
+    color: #e8bc91;
+    /* Gold on Green */
     margin: 5px 0 0;
     font-size: 18px;
 }
@@ -40,8 +49,10 @@ body {
 }
 
 h3 {
-    color: #0056b3;
-    border-bottom: 1px solid #dee2e6;
+    color: #1a6563;
+    /* Green */
+    border-bottom: 1px solid #e8bc91;
+    /* Gold accent */
     padding-bottom: 10px;
     margin-top: 0;
 }
@@ -116,14 +127,14 @@ h4 {
     background: #f8f9fa;
     font-size: 0.9em;
     font-weight: bold;
-    color: #0056b3;
+    color: #1a6563;
 }
 
 .photo-analysis-block {
     background: #f8f9fa;
     padding: 15px;
     border-radius: 8px;
-    border-right: 4px solid #0056b3;
+    border-right: 4px solid #1a6563;
 }
 
 .analysis-item {

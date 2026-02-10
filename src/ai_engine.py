@@ -1,23 +1,26 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from src.config import Config
 import json
 import logging
 from PIL import Image
+import io
 
 logger = logging.getLogger(__name__)
 
 class AIEngine:
     def __init__(self):
-        genai.configure(api_key=Config.GOOGLE_API_KEY)
-        # Using standard model name with updated library
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        # Initialize the new GenAI Client
+        self.client = genai.Client(api_key=Config.GOOGLE_API_KEY)
+        self.model_name = 'gemini-1.5-flash'
 
     def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):
         """
-        Analyzes site data using Gemini 1.5 Flash.
+        Analyzes site data using Google GenAI SDK.
         Incorporates weather and project context.
         """
         logger.info(f"Analyzing site data: Text={bool(text_input)}, Image={bool(image_input)}")
+        
         context = (
             "بصفتك المنسق الذكي والمشرف العام لمشروع برج نؤاس، دورك جوهري في ضمان سير العمل بكفاءة وأمان.\n"
             "مسؤولياتك تشمل:\n"
@@ -35,24 +38,27 @@ class AIEngine:
         if project_data:
             context += f"سياق المشروع: {json.dumps(project_data, ensure_ascii=False)}\n"
 
-        prompt = [context]
+        contents = [context]
         if text_input:
-            prompt.append(f"المدخلات النصية: {text_input}")
+            contents.append(f"المدخلات النصية: {text_input}")
             
         if image_input:
             if isinstance(image_input, str):
-                # Assume file path
+                # If path string, try to load as PIL image
                 try:
                     img = Image.open(image_input)
-                    prompt.append("الصورة المرفقة:")
-                    prompt.append(img)
+                    contents.append(img)
                 except Exception as e:
-                    logger.error(f"Error loading image: {e}")
+                    logger.error(f"Error loading image from path: {e}")
             else:
-                prompt.append(image_input)
+                # Assume it's already a suitable image object or bytes
+                contents.append(image_input)
 
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents
+            )
             return response.text
         except Exception as e:
             logger.error(f"AI Error: {e}")
@@ -71,20 +77,24 @@ class AIEngine:
         if not chat_logs:
             return default_response
         
-        # ... existing prompt ...
-
-        prompt = [
-            "أنت المنسق الذكي لموقع العمل. قم بتحليل سجلات المحادثة واستخرج قسمين محددين بدقة:",
-            "1. 'site_manpower_machinery': قائمة غير مرتبة بتنسيق HTML (<ul><li>...</li></ul>) تتضمن القوى العاملة، المهندسين، والمعدات والآليات المذكورة.",
-            "2. 'site_activities': قائمة غير مرتبة بتنسيق HTML (<ul><li>...</li></ul>) تتضمن أنشطة الموقع العامة، تقدم العمل، وأي مشكلات تم الإبلاغ عنها.",
-            "يجب أن تكون المخرجات كائن JSON صالح يحتوي على هذين المفتاحين فقط. استخدم لغة عربية مهنية وهندسية.",
+        prompt_text = (
+            "أنت المنسق الذكي لموقع العمل. قم بتحليل سجلات المحادثة واستخرج قسمين محددين بدقة:\n"
+            "1. 'site_manpower_machinery': قائمة غير مرتبة بتنسيق HTML (<ul><li>...</li></ul>) تتضمن القوى العاملة، المهندسين، والمعدات والآليات المذكورة.\n"
+            "2. 'site_activities': قائمة غير مرتبة بتنسيق HTML (<ul><li>...</li></ul>) تتضمن أنشطة الموقع العامة، تقدم العمل، وأي مشكلات تم الإبلاغ عنها.\n"
+            "يجب أن تكون المخرجات كائن JSON صالح يحتوي على هذين المفتاحين فقط. استخدم لغة عربية مهنية وهندسية.\n"
             f"سجلات المحادثة:\n{chat_logs}"
-        ]
+        )
         
         try:
-            response = self.model.generate_content(prompt)
+            # Request JSON response
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt_text,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            
             text_response = response.text.strip()
-            # Clean up markdown code blocks if present
+            # Clean up markdown if present (though JSON mode usually avoids it)
             if text_response.startswith("```json"):
                 text_response = text_response[7:-3].strip()
             elif text_response.startswith("```"):
@@ -104,7 +114,10 @@ class AIEngine:
             "Start with an emoji. Keep it under 30 words."
         )
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             return response.text.strip()
         except Exception as e:
             logger.error(f"Error generating safety advice: {e}")

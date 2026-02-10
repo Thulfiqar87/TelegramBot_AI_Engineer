@@ -16,6 +16,7 @@ class AIEngine:
         Analyzes site data using Gemini 1.5 Flash.
         Incorporates weather and project context.
         """
+        logger.info(f"Analyzing site data: Text={bool(text_input)}, Image={bool(image_input)}")
         context = (
             "بصفتك المنسق الذكي والمشرف العام لمشروع برج نؤاس، دورك جوهري في ضمان سير العمل بكفاءة وأمان.\n"
             "مسؤولياتك تشمل:\n"
@@ -36,6 +37,7 @@ class AIEngine:
         prompt = [context]
         if text_input:
             prompt.append(f"المدخلات النصية: {text_input}")
+            
         if image_input:
             if isinstance(image_input, str):
                 # Assume file path
@@ -48,8 +50,6 @@ class AIEngine:
             else:
                 prompt.append(image_input)
 
-    def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):
-        # ... existing ...
         try:
             response = self.model.generate_content(prompt)
             return response.text

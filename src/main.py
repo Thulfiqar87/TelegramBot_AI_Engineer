@@ -219,7 +219,7 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
                 if not p.analysis:
                     logger.info(f"Performing lazy analysis for photo {p.file_unique_id}")
                     try:
-                        analysis_prompt = "Analyze this construction site photo. Describe safety gear usage, progress, and any hazards."
+                        analysis_prompt = "Analyze this construction site photo briefly (max 2-3 sentences). Focus on safety, progress, and main hazards."
                         if p.caption:
                             analysis_prompt += f" User caption: {p.caption}"
                             
@@ -238,6 +238,7 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
                 photos_data.append({
                     "file_path": p.file_path,
                     "abs_path": os.path.abspath(p.file_path),
+                    "b64": await pdf_generator._encode_file(p.file_path), # Reuse helper from pdf_generator instance or duplicate logic
                     "analysis": p.analysis,
                     "timestamp": p.timestamp.strftime("%H:%M %p"),
                     "caption": p.caption

@@ -18,7 +18,7 @@
             <p><strong>Report No:</strong> {{ report_id }}</p>
         </div>
         <div class="logo-container">
-            <img src="src/logo.png" alt="Burj Nawas Logo" class="logo">
+            <img src="data:image/png;base64,{{ logo_b64 }}" alt="Burj Nawas Logo" class="logo">
         </div>
         <div class="title-container">
             <h1>مشروع برج نؤاس</h1>
@@ -73,23 +73,17 @@
                 <h4>الأعمال النشطة حالياً (Active Work Packages)</h4>
                 <ul>
                     {% for task in projects.active %}
-                    <li><strong>{{ task.subject }}</strong> - {{ task.status }} (Due: {{ task.dueDate }})</li>
+                    <li>
+                        <strong>{{ task.subject }}</strong> - {{ task.status }}
+                        <span class="due-date">📅 Due: {{ task.dueDate }}</span>
+                    </li>
                     {% else %}
                     <li>لا يوجد أعمال نشطة حالياً.</li>
                     {% endfor %}
                 </ul>
             </div>
 
-            <div class="subsection">
-                <h4>الأعمال القادمة (Incoming Work Packages)</h4>
-                <ul>
-                    {% for task in projects.incoming %}
-                    <li><strong>{{ task.subject }}</strong> - {{ task.status }} (Start: {{ task.startDate }})</li>
-                    {% else %}
-                    <li>لا يوجد أعمال قادمة مسجلة.</li>
-                    {% endfor %}
-                </ul>
-            </div>
+            <!-- Incoming Section Removed -->
         </div>
 
         <!-- Section 3: Chat Summary -->
@@ -118,7 +112,8 @@
             <div class="photo-grid">
                 {% for photo in photos %}
                 <div class="photo-item">
-                    <img src="{{ photo.abs_path }}" class="site-photo">
+                    <!-- Use base64 image -->
+                    <img src="data:image/jpeg;base64,{{ photo.b64 }}" class="site-photo">
                     <div class="photo-number">صورة {{ loop.index }}</div>
                 </div>
                 {% else %}

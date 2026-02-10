@@ -68,14 +68,12 @@ class OpenProjectClient:
                     "startDate": start_date_str
                 }
                 
-                # Logic for Incoming
-                if start_date and start_date > today:
-                    summary["incoming"].append(item)
-                    continue
-                
-                # Logic for Active
-                if "closed" not in status and "rejected" not in status:
+                # Logic for Active Only (In Progress)
+                if status == "in progress":
                     summary["active"].append(item)
+                
+                # Incoming logic removed as per user request
+                
             except Exception as e:
                 logger.warning(f"Error processing package {pkg.get('id')}: {e}")
                 continue

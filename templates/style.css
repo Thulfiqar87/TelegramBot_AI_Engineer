@@ -1,251 +1,156 @@
 body {
-    font-family: 'Amiri', 'Arial', sans-serif;
+    font-family: 'Amiri', serif;
+    direction: rtl;
+    background-color: #f4f6f9;
     color: #333;
-    line-height: 1.6;
-    margin: 40px;
+    padding: 20px;
 }
 
 .header-container {
-    background-color: #1a6563;
-    /* User requested color */
-    color: #e8bc91;
-    border-bottom: 2px solid #145250;
-    padding: 20px;
-    margin-bottom: 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-direction: row-reverse;
-    /* Right to Left for Arabic layout generally, but we want specific order */
+    border-bottom: 3px solid #0056b3;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
 }
 
-/* Actually, flex-direction row-reverse puts the first item in DOM on the right.
-   DOM: Left(Date), Right(Logo/Title).
-   If we want Right(Logo) on the right of the page:
-   We should probably just use normal flex and swapping or just structure DOM correctly.
-   Arabic page dir="rtl".
-   In RTL:
-   Start is Right, End is Left.
-   Flex container:
-   Item 1 (Right in code header-left? No names are confusing).
-*/
-
-.header-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    /* In RTL this is right */
-}
-
-.header-left {
-    text-align: left;
-    /* English text needs LTR alignment maybe? */
-    direction: ltr;
-    /* Force LTR for Date/Report ID as requested in English */
-    color: #f0f0f0;
-}
-
-.logo-container .logo {
-    max-width: 150px;
-    /* background: white; Removed as requested */
-    /* padding: 5px; Removed as requested */
-    border-radius: 5px;
+.logo {
+    height: 80px;
 }
 
 .title-container h1 {
-    font-size: 1.8em;
-    margin: 5px 0;
-    color: #ffffff;
+    color: #004085;
+    margin: 0;
+    font-size: 24px;
 }
 
 .title-container h2 {
-    font-size: 1.2em;
-    margin: 0;
-    color: #e8bc91;
-    border: none;
-}
-
-h3 {
-    color: #1a6563;
-    border-bottom: 2px solid #e8bc91;
-    padding-bottom: 5px;
-    margin-top: 30px;
-}
-
-h4 {
-    color: #2c3e50;
-    margin-top: 20px;
-    margin-bottom: 10px;
+    color: #6c757d;
+    margin: 5px 0 0;
+    font-size: 18px;
 }
 
 .section {
-    margin-bottom: 30px;
-    background-color: #fff;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
 }
 
-.forecast-grid {
-    display: flex;
-    gap: 15px;
+h3 {
+    color: #0056b3;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+    margin-top: 0;
 }
 
-.forecast-card {
-    background: #1a6563;
-    /* Header green color */
-    color: #fff;
-    padding: 8px;
-    /* Reduced padding */
-    border-radius: 5px;
-    text-align: center;
-    flex: 1;
-    min-width: 80px;
-    /* Ensure they don't get too squished */
-    font-size: 0.9em;
-    /* Slightly smaller text */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+h4 {
+    color: #495057;
+    margin-bottom: 15px;
 }
 
-.weather-icon {
-    width: 40px;
-    height: 40px;
-    margin: 5px 0;
-    filter: brightness(0) invert(1);
-    /* Make icons white to contrast with green bg */
+.subsection {
+    margin-bottom: 20px;
 }
 
-.forecast-temp {
-    font-weight: bold;
-    font-size: 1.1em;
-    margin: 2px 0;
-    color: #fff;
-}
-
-.forecast-desc {
-    font-size: 0.8em;
-    color: #e0e0e0;
-    margin: 0;
-}
-
-.forecast-date {
-    font-weight: bold;
-    color: #e8bc91;
-    /* Gold/beige from header */
-    margin-bottom: 5px;
-}
-
-/* Current Weather Styles */
+/* Weather Grid */
 .weather-current-grid {
     display: flex;
-    justify-content: space-around;
-    align-items: center;
-    /* background: #fdfdfd; Removed as requested */
-    padding: 15px 0;
-    /* Keep some vertical padding but remove background box */
-    /* border: 1px solid #eee; Removed as requested */
-    /* border-radius: 5px; Removed as requested */
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 .weather-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    background: #e9ecef;
+    padding: 10px 15px;
+    border-radius: 8px;
+    min-width: 150px;
 }
 
 .weather-icon-small {
     width: 32px;
     height: 32px;
-}
-
-.weather-item div {
-    display: flex;
-    flex-direction: column;
+    margin-left: 10px;
 }
 
 .weather-item .label {
+    display: block;
     font-size: 0.8em;
-    color: #777;
+    color: #6c757d;
 }
 
 .weather-item .value {
+    display: block;
     font-weight: bold;
-    color: #1a6563;
     font-size: 1.1em;
 }
 
-/* Photo Grid Styles */
+/* Photo Grid */
 .photo-grid {
     display: grid;
-    /* Changed from 4 to 3 columns as requested */
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
     margin-bottom: 20px;
 }
 
 .photo-item {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
     text-align: center;
-    background: #fff;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
 }
 
 .site-photo {
     width: 100%;
-    /* Create a square aspect ratio or fixed height for uniformity */
     height: 150px;
     object-fit: cover;
-    border-radius: 3px;
-    margin-bottom: 5px;
     display: block;
 }
 
 .photo-number {
-    font-weight: bold;
-    color: #1a6563;
+    padding: 5px;
+    background: #f8f9fa;
     font-size: 0.9em;
+    font-weight: bold;
+    color: #0056b3;
 }
 
-/* Analysis Block Styles */
 .photo-analysis-block {
-    background: #fbfbfb;
-    padding: 20px;
-    border-radius: 5px;
-    border: 1px solid #eee;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-right: 4px solid #0056b3;
 }
 
 .analysis-item {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     padding-bottom: 10px;
-    border-bottom: 1px dashed #ccc;
+    border-bottom: 1px dashed #dee2e6;
 }
 
 .analysis-item:last-child {
     border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
+}
+
+.due-date {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.85em;
+    margin-right: 10px;
+    display: inline-block;
 }
 
 ul {
-    list-style-type: none;
-    padding: 0;
+    padding-right: 20px;
 }
 
 li {
-    /* background: #f9f9f9; Removed as requested */
-    margin: 5px 0;
-    padding: 10px;
-    border-right: 5px solid #1a6563;
-    /* RTL border */
-}
-
-.footer {
-    text-align: center;
-    font-size: 0.8em;
-    color: #777;
-    margin-top: 50px;
-    border-top: 1px solid #ddd;
-    padding-top: 20px;
+    margin-bottom: 8px;
 }

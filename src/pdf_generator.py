@@ -21,12 +21,26 @@ class PDFGenerator:
         if self.playwright:
             await self.playwright.stop()
 
+    async def _encode_file(self, path):
+        """Encodes a file to base64 string."""
+        import base64
+        try:
+            with open(path, "rb") as f:
+                return base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            print(f"Error encoding file {path}: {e}")
+            return ""
+
     async def generate_report(self, data):
         """
         Generates a PDF report from data using the persistent browser.
         """
         if not hasattr(self, 'browser') or not self.browser:
             await self.start_browser()
+
+        # Inject Logo
+        logo_path = os.path.join("static", "logo.png")
+        data['logo_b64'] = await self._encode_file(logo_path)
 
         template = self.env.get_template("report.html")
         html_content = template.render(**data)

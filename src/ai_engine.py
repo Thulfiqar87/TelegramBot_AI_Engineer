@@ -13,7 +13,7 @@ class AIEngine:
         # Configure Dashscope API Key
         dashscope.api_key = Config.DASHSCOPE_API_KEY
         # Models
-        self.vision_model = 'qwen-vl-plus' # Multimodal (Text + Image)
+        self.vision_model = 'qwen3-vl-plus-2025-12-19' # Specific version as requested
         self.text_model = 'qwen-plus'      # Text only (summary, safety tips)
 
     def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):

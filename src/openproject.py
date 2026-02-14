@@ -1,6 +1,8 @@
 import aiohttp
 import base64
 import logging
+import json
+from urllib.parse import urlparse, quote
 from datetime import datetime
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from src.config import Config
@@ -10,12 +12,60 @@ logger = logging.getLogger(__name__)
 
 class OpenProjectClient:
     def __init__(self):
-        self.base_url = Config.OPENPROJECT_URL
+        self.original_url = Config.OPENPROJECT_URL
         self.api_key = Config.OPENPROJECT_API_KEY
+        
+        # Parse URL to extract project identifier if present
+        parsed = urlparse(self.original_url)
+        path_parts = parsed.path.strip("/").split("/")
+        
+        self.project_identifier = None
+        # Check if URL ends with /projects/{identifier}
+        if "projects" in path_parts:
+            try:
+                idx = path_parts.index("projects")
+                if len(path_parts) > idx + 1:
+                    self.project_identifier = path_parts[idx + 1]
+            except ValueError:
+                pass
+        
+        # Base URL should be the root (scheme + netloc)
+        self.base_url = f"{parsed.scheme}://{parsed.netloc}"
+
         self.headers = {
             "Authorization": f"Basic {base64.b64encode(f'apikey:{self.api_key}'.encode()).decode()}",
             "Content-Type": "application/json"
         }
+        self.project_id = None # Cache for project ID
+
+    async def _get_project_id(self):
+        """Resolves project identifier to ID."""
+        if not self.project_identifier:
+            return None
+        if self.project_id:
+            return self.project_id
+            
+        try:
+            # Filter by identifier
+            filters = [{"identifier": {"operator": "=", "values": [self.project_identifier]}}]
+            filters_json = json.dumps(filters)
+            filters_encoded = quote(filters_json)
+            
+            url = f"{self.base_url}/api/v3/projects?filters={filters_encoded}"
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=self.headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        elements = data.get("_embedded", {}).get("elements", [])
+                        if elements:
+                            self.project_id = elements[0].get("id")
+                            logger.info(f"Resolved project '{self.project_identifier}' to ID {self.project_id}")
+                            return self.project_id
+            logger.warning(f"Could not resolve project identifier '{self.project_identifier}'")
+        except Exception as e:
+            logger.error(f"Error resolving project ID: {e}")
+        return None
 
     @retry(
         retry=retry_if_exception_type(aiohttp.ClientError),
@@ -26,6 +76,13 @@ class OpenProjectClient:
         """Fetches work packages from OpenProject with retry logic."""
         try:
             url = f"{self.base_url}/api/v3/work_packages"
+            
+            # Add project filter if applicable
+            project_id = await self._get_project_id()
+            if project_id:
+                filters = [{"project": {"operator": "=", "values": [str(project_id)]}}]
+                url += f"?filters={quote(json.dumps(filters))}"
+                
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=self.headers) as response:
                     response.raise_for_status()

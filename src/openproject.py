@@ -12,15 +12,22 @@ logger = logging.getLogger(__name__)
 
 class OpenProjectClient:
     def __init__(self):
-        self.original_url = Config.OPENPROJECT_URL
+        raw_url = Config.OPENPROJECT_URL
+        
+        # 1. Clean up potential copy-paste errors in env var (e.g. OPENPROJECT_URL=http...)
+        if raw_url.startswith("OPENPROJECT_URL="):
+            raw_url = raw_url.split("=", 1)[1]
+        
+        self.original_url = raw_url.strip()
         self.api_key = Config.OPENPROJECT_API_KEY
         
-        # Parse URL to extract project identifier if present
+        # Parse URL
         parsed = urlparse(self.original_url)
+        
+        # 2. Extract Identifier from path if present (e.g. /projects/identifier)
+        self.project_identifier = None
         path_parts = parsed.path.strip("/").split("/")
         
-        self.project_identifier = None
-        # Check if URL ends with /projects/{identifier}
         if "projects" in path_parts:
             try:
                 idx = path_parts.index("projects")
@@ -29,8 +36,12 @@ class OpenProjectClient:
             except ValueError:
                 pass
         
-        # Base URL should be the root (scheme + netloc)
+        # 3. Derive Base URL (Scheme + Netloc only)
+        # This fixes the issue where full path URLs caused API calls to be malformed
+        # e.g. http://host/projects/foo -> http://host
         self.base_url = f"{parsed.scheme}://{parsed.netloc}"
+        
+        logger.info(f"OpenProject Config: Base='{self.base_url}', ID='{self.project_identifier}'")
 
         self.headers = {
             "Authorization": f"Basic {base64.b64encode(f'apikey:{self.api_key}'.encode()).decode()}",

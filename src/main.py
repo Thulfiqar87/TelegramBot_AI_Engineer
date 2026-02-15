@@ -215,31 +215,10 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
             photos_db = result.scalars().all()
             
             for p in photos_db:
-                # Lazy Analysis: If analysis is missing, do it now
-                if not p.analysis:
-                    logger.info(f"Performing lazy analysis for photo {p.file_unique_id}")
-                    try:
-                        analysis_prompt = "Analyze this construction site photo briefly (max 2-3 sentences). Focus on safety, progress, and main hazards."
-                        if p.caption:
-                            analysis_prompt += f" User caption: {p.caption}"
-                            
-                        # Perform analysis
-                        p.analysis = ai_engine.analyze_site_data(
-                            text_input=analysis_prompt,
-                            image_input=p.file_path
-                        )
-                        # Update DB
-                        session.add(p)
-                        await session.commit()
-                    except Exception as e:
-                        logger.error(f"Error in lazy photo analysis: {e}")
-                        p.analysis = "Analysis failed during report generation."
-
                 photos_data.append({
                     "file_path": p.file_path,
                     "abs_path": os.path.abspath(p.file_path),
                     "b64": await pdf_generator._encode_file(p.file_path), # Reuse helper from pdf_generator instance or duplicate logic
-                    "analysis": p.analysis,
                     "timestamp": p.timestamp.strftime("%H:%M %p"),
                     "caption": p.caption
                 })

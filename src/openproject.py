@@ -46,26 +46,26 @@ class OpenProjectClient:
             return self.project_id
             
         try:
-            # Filter by identifier
-            filters = [{"identifier": {"operator": "=", "values": [self.project_identifier]}}]
-            filters_json = json.dumps(filters)
-            filters_encoded = quote(filters_json)
-            
-            url = f"{self.base_url}/api/v3/projects?filters={filters_encoded}"
+            # Fetch all projects and filter in-memory (API filter 'identifier' was returning 400)
+            url = f"{self.base_url}/api/v3/projects"
             
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=self.headers) as response:
                     if response.status == 200:
                         data = await response.json()
                         elements = data.get("_embedded", {}).get("elements", [])
-                        if elements:
-                            self.project_id = elements[0].get("id")
-                            logger.info(f"Resolved project '{self.project_identifier}' to ID {self.project_id}")
-                            return self.project_id
+                        
+                        for project in elements:
+                            if project.get("identifier") == self.project_identifier:
+                                self.project_id = project.get("id")
+                                logger.info(f"Resolved project '{self.project_identifier}' to ID {self.project_id}")
+                                return self.project_id
+                                
             logger.warning(f"Could not resolve project identifier '{self.project_identifier}'")
         except Exception as e:
             logger.error(f"Error resolving project ID: {e}")
         return None
+
 
     @retry(
         retry=retry_if_exception_type(aiohttp.ClientError),

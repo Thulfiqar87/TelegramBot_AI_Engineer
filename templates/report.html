@@ -121,20 +121,7 @@
                 {% endfor %}
             </div>
 
-            {% if photos %}
-            <div class="photo-analysis-block">
-                <h4>تحليل الصور (Photo Analysis)</h4>
-                {% for photo in photos %}
-                <div class="analysis-item">
-                    <strong>صورة {{ loop.index }}:</strong>
-                    <span>{{ photo.analysis | safe }}</span>
-                    <br>
-                    <small>Time: {{ photo.timestamp }}</small>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
+
 
         <div class="footer">
             <p>تم انشاء التقرير بواسطة AI Site Coordinator © {{ date }} برج نؤاس. جميع الحقوق محفوظة.</p>

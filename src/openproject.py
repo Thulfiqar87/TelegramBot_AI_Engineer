@@ -106,10 +106,16 @@ class OpenProjectClient:
             return summary
 
         today = datetime.now().date()
+        logger.info(f"Processing {len(packages)} work packages for summary...")
         
         for pkg in packages:
             try:
-                status = pkg.get("_links", {}).get("status", {}).get("title", "").lower()
+                status = pkg.get("_links", {}).get("status", {}).get("title", "").strip()
+                status_lower = status.lower()
+                
+                # Debug log for every package (temporarily, or keep as debug)
+                # logger.debug(f"Package {pkg.get('id')}: {pkg.get('subject')} - Status: '{status}'")
+                
                 start_date_str = pkg.get("startDate")
                 due_date_str = pkg.get("dueDate")
                 
@@ -126,13 +132,16 @@ class OpenProjectClient:
                 }
                 
                 # Logic for Active Only (In Progress)
-                if status == "in progress":
+                # Relaxed check: case-insensitive and substring match
+                if "in progress" in status_lower:
                     summary["active"].append(item)
-                
-                # Incoming logic removed as per user request
+                    logger.info(f"Added active package: {item['subject']} ({status})")
+                else:
+                    logger.debug(f"Skipping package {item['id']} ({status}) - Not in progress")
                 
             except Exception as e:
                 logger.warning(f"Error processing package {pkg.get('id')}: {e}")
                 continue
-                
+        
+        logger.info(f"Summary prepared: {len(summary['active'])} active packages.")
         return summary

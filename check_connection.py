@@ -11,6 +11,7 @@ print(f"--- Diagnostic: Checking OpenProject Connection ---")
 print(f"Target URL: {url}")
 print(f"API Key Present: {bool(api_key)}")
 
+async def check_connection():
     try:
         # Parse Base URL matching app logic
         from urllib.parse import urlparse
@@ -63,7 +64,6 @@ print(f"API Key Present: {bool(api_key)}")
 
     except Exception as e:
         print(f"Script Error: {e}")
-
 
 if __name__ == "__main__":
     if sys.platform == "win32":

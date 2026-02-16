@@ -11,7 +11,7 @@ from src.openproject import OpenProjectClient
 from src.pdf_generator import PDFGenerator
 from src.database import init_db, get_db, AsyncSessionLocal
 from src.models import ChatLog, PhotoMetadata, ReportCounter
-from sqlalchemy import select, func
+
 
 # Enable logging
 logging.basicConfig(
@@ -24,6 +24,7 @@ ai_engine = AIEngine()
 weather_client = WeatherClient()
 openproject_client = OpenProjectClient()
 pdf_generator = PDFGenerator()
+
 
 async def post_init(application: Application) -> None:
     """Initialize the database and browser on startup."""
@@ -250,6 +251,9 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
         }
         
         pdf_path = await pdf_generator.generate_report(data)
+        
+
+
         await context.bot.send_document(chat_id=chat_id, document=open(pdf_path, 'rb'), filename=f"Site_Report_{date_str}_{report_id}.pdf")
         logger.info(f"Report sent to chat_id {chat_id}")
         

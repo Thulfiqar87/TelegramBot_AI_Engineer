@@ -83,7 +83,21 @@
                 </ul>
             </div>
 
-            <!-- Incoming Section Removed -->
+            <!-- Incoming Section -->
+            <div class="subsection">
+                <h4>الأعمال القادمة (Next Upcoming Work)</h4>
+                <ul>
+                    {% if projects.incoming and projects.incoming|length > 0 %}
+                    {% set next_wp = projects.incoming[0] %}
+                    <li>
+                        <strong>{{ next_wp.subject }}</strong> - {{ next_wp.status }}
+                        <span class="due-date">📅 Start: {{ next_wp.startDate }}</span>
+                    </li>
+                    {% else %}
+                    <li>لا يوجد أعمال قادمة مجدولة حالياً.</li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
 
         <!-- Section 3: Chat Summary -->
@@ -123,9 +137,9 @@
 
 
 
-        <div class="footer">
-            <p>تم انشاء التقرير بواسطة AI Site Coordinator © {{ date }} برج نؤاس. جميع الحقوق محفوظة.</p>
-        </div>
+            <div class="footer">
+                <p>تم انشاء التقرير بواسطة AI Site Coordinator © {{ date }} برج نؤاس. جميع الحقوق محفوظة.</p>
+            </div>
 </body>
 
 </html>

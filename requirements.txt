@@ -1,6 +1,6 @@
 python-telegram-bot[job-queue]
 openai>=1.0.0
-playwright
+
 jinja2
 requests
 python-dotenv
@@ -11,3 +11,4 @@ tenacity
 pydantic-settings
 aiohttp
 Pillow
+

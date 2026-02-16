@@ -147,12 +147,18 @@ class OpenProjectClient:
                 if "in progress" in status_lower:
                     summary["active"].append(item)
                     logger.info(f"Added active package: {item['subject']} ({status})")
-                else:
-                    logger.debug(f"Skipping package {item['id']} ({status}) - Not in progress")
-                
+                elif status_lower not in ["closed", "rejected", "completed", "on hold"]:
+                     # Check for upcoming: must have start date >= today logic, or just future
+                     # We'll assume anything not closed/in-progress with a start date is "upcoming" or "scheduled"
+                     if start_date:
+                         summary["incoming"].append(item)
+                         
             except Exception as e:
                 logger.warning(f"Error processing package {pkg.get('id')}: {e}")
                 continue
         
-        logger.info(f"Summary prepared: {len(summary['active'])} active packages.")
+        # Sort incoming by start date
+        summary["incoming"].sort(key=lambda x: x["startDate"] or "9999-12-31")
+        
+        logger.info(f"Summary prepared: {len(summary['active'])} active, {len(summary['incoming'])} upcoming.")
         return summary

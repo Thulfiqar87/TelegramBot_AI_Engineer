@@ -12,6 +12,7 @@ from src.openproject import OpenProjectClient
 from src.pdf_generator import PDFGenerator
 from src.database import init_db, get_db, AsyncSessionLocal
 from src.models import ChatLog, PhotoMetadata, ReportCounter
+from sqlalchemy import select
 
 
 # Enable logging

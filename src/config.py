@@ -5,9 +5,11 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
     GOOGLE_API_KEY: str = "deprecated"
     DASHSCOPE_API_KEY: str = "deprecated"
-    OPENAI_API_KEY: str
+    OPENAI_API_KEY: str | None = None
     OPENPROJECT_URL: str
     OPENPROJECT_API_KEY: str
+    OP_USERNAME: str | None = None
+    OP_PASSWORD: str | None = None
     OPENWEATHER_API_KEY: str
     OPENWEATHER_LAT: float = 24.7136
     OPENWEATHER_LON: float = 46.6753

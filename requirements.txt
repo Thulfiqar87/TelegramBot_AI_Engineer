@@ -12,3 +12,4 @@ pydantic-settings
 aiohttp
 Pillow
 
+playwright

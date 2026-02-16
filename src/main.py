@@ -2,39 +2,7 @@ import logging
 import os
 import time
 import asyncio
-import asyncio
 from datetime import datetime, time as dt_time
-
-# ... imports ...
-
-async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
-    # ... previous code ...
-        logger.info(f"Photos processed in {time.time() - step_start:.2f}s")
-
-        # AI Analysis & Summary (Parallelized)
-        step_start = time.time()
-        
-        # Prepare context for overall analysis
-        context_text = f"Daily Summary based on logs: {chat_content}"
-        
-        # Execute both AI tasks concurrently
-        results = await asyncio.gather(
-            ai_engine.summarize_logs(chat_content),
-            ai_engine.analyze_site_data(
-                text_input=context_text, 
-                weather_data=weather_current, 
-                project_data=projects_summary
-            )
-        )
-        
-        site_summary_data = results[0]
-        analysis_overall = results[1]
-        
-        logger.info(f"AI Tasks (Summary + Analysis) completed in {time.time() - step_start:.2f}s")
-        # site_summary_data contains {'site_manpower_machinery': ..., 'site_activities': ...}
-
-        data = {
-            # ... data construction ...
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 

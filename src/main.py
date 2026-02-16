@@ -173,12 +173,15 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = job.chat_id
     
     logger.info("Generating daily report...")
+    start_time = time.time()
     
     try:
         # Generate Unique ID
         report_id = await generate_report_id()
+        logger.info(f"Report ID generated in {time.time() - start_time:.2f}s")
         
         # Read Logs from DB
+        step_start = time.time()
         date_str = datetime.now().strftime("%Y-%m-%d")
         chat_content = ""
         
@@ -197,18 +200,24 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
             else:
                 logger.info("No logs found for today.")
                 chat_content = "No logs recorded today."
+        logger.info(f"Logs fetched in {time.time() - step_start:.2f}s")
                 
         # Get Data
+        step_start = time.time()
         weather_current = await weather_client.get_current_weather()
+        logger.info(f"Weather fetched in {time.time() - step_start:.2f}s")
         # weather_forecast_raw = weather_client.get_forecast() # Removed as per new requirement
         
         # Process Forecast (Next 3 days) - REMOVED
         forecast = []
 
+        step_start = time.time()
         projects_summary = await openproject_client.get_summary()
+        logger.info(f"OpenProject summary fetched in {time.time() - step_start:.2f}s")
         # projects_summary now contains {'active': [], 'incoming': []}
 
         # Get Photo metadata from DB
+        step_start = time.time()
         photos_data = []
         async with AsyncSessionLocal() as session:
             # Filter photos by today's date_str
@@ -223,18 +232,23 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
                     "timestamp": p.timestamp.strftime("%H:%M %p"),
                     "caption": p.caption
                 })
+        logger.info(f"Photos processed in {time.time() - step_start:.2f}s")
 
         # AI Analysis & Summary
+        step_start = time.time()
         site_summary_data = ai_engine.summarize_logs(chat_content)
+        logger.info(f"AI Logs Summary generated in {time.time() - step_start:.2f}s")
         # site_summary_data contains {'site_manpower_machinery': ..., 'site_activities': ...}
 
         # Context for Overall Analysis
+        step_start = time.time()
         context_text = f"Daily Summary based on logs: {chat_content}"
         analysis_overall = ai_engine.analyze_site_data(
             text_input=context_text, 
             weather_data=weather_current, 
             project_data=projects_summary
         )
+        logger.info(f"AI Overall Analysis generated in {time.time() - step_start:.2f}s")
         
         data = {
             "date": date_str,
@@ -250,12 +264,15 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
             "photos": photos_data
         }
         
+        step_start = time.time()
         pdf_path = await pdf_generator.generate_report(data)
+        logger.info(f"PDF generated in {time.time() - step_start:.2f}s")
         
 
-
+        step_start = time.time()
         await context.bot.send_document(chat_id=chat_id, document=open(pdf_path, 'rb'), filename=f"Site_Report_{date_str}_{report_id}.pdf")
-        logger.info(f"Report sent to chat_id {chat_id}")
+        logger.info(f"Report sent to chat in {time.time() - step_start:.2f}s")
+        logger.info(f"Total report generation time: {time.time() - start_time:.2f}s")
         
     except Exception as e:
         logger.error(f"Error generating daily report: {e}")

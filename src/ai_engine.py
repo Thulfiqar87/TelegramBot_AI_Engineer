@@ -1,17 +1,18 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from src.config import Config
 import json
 import logging
 import base64
 from PIL import Image
 import os
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 class AIEngine:
     def __init__(self):
         # Initialize OpenAI Client
-        self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
+        self.client = AsyncOpenAI(api_key=Config.OPENAI_API_KEY)
         self.model = "gpt-4o"
 
     def _encode_image(self, image_path):
@@ -19,7 +20,7 @@ class AIEngine:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
-    def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):
+    async def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):
         """
         Analyzes site data using OpenAI GPT-4o.
         Incorporates weather and project context including images.
@@ -77,7 +78,7 @@ class AIEngine:
                 logger.warning("OpenAI Engine received non-path image object. Skipping image analysis.")
 
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 max_tokens=1000
@@ -87,7 +88,7 @@ class AIEngine:
             logger.error(f"AI Error (OpenAI): {e}")
             return "عذراً، حدث خطأ أثناء تحليل البيانات."
 
-    def summarize_logs(self, chat_logs):
+    async def summarize_logs(self, chat_logs):
         """
         Summarizes chat logs into Manpower/Machinery and Site Activities using GPT-4o JSON mode.
         """
@@ -114,7 +115,7 @@ class AIEngine:
         )
         
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant designed to output JSON."},
@@ -130,7 +131,7 @@ class AIEngine:
             logger.error(f"AI Summary Error: {e}")
             return default_response
 
-    def get_safety_advice(self):
+    async def get_safety_advice(self):
         """Generates a short, professional safety tip in Arabic using GPT-4o."""
         prompt = (
             "You are a Site Safety Manager for a high-rise construction project. "
@@ -139,7 +140,7 @@ class AIEngine:
             "Start with an emoji. Keep it under 30 words."
         )
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "user", "content": prompt}

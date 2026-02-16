@@ -1,7 +1,40 @@
 import logging
 import os
 import time
+import asyncio
+import asyncio
 from datetime import datetime, time as dt_time
+
+# ... imports ...
+
+async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
+    # ... previous code ...
+        logger.info(f"Photos processed in {time.time() - step_start:.2f}s")
+
+        # AI Analysis & Summary (Parallelized)
+        step_start = time.time()
+        
+        # Prepare context for overall analysis
+        context_text = f"Daily Summary based on logs: {chat_content}"
+        
+        # Execute both AI tasks concurrently
+        results = await asyncio.gather(
+            ai_engine.summarize_logs(chat_content),
+            ai_engine.analyze_site_data(
+                text_input=context_text, 
+                weather_data=weather_current, 
+                project_data=projects_summary
+            )
+        )
+        
+        site_summary_data = results[0]
+        analysis_overall = results[1]
+        
+        logger.info(f"AI Tasks (Summary + Analysis) completed in {time.time() - step_start:.2f}s")
+        # site_summary_data contains {'site_manpower_machinery': ..., 'site_activities': ...}
+
+        data = {
+            # ... data construction ...
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -236,21 +269,26 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
                 })
         logger.info(f"Photos processed in {time.time() - step_start:.2f}s")
 
-        # AI Analysis & Summary
+        # AI Analysis & Summary (Parallelized)
         step_start = time.time()
-        site_summary_data = ai_engine.summarize_logs(chat_content)
-        logger.info(f"AI Logs Summary generated in {time.time() - step_start:.2f}s")
-        # site_summary_data contains {'site_manpower_machinery': ..., 'site_activities': ...}
-
-        # Context for Overall Analysis
-        step_start = time.time()
+        
+        # Prepare context for overall analysis
         context_text = f"Daily Summary based on logs: {chat_content}"
-        analysis_overall = ai_engine.analyze_site_data(
-            text_input=context_text, 
-            weather_data=weather_current, 
-            project_data=projects_summary
+        
+        # Execute both AI tasks concurrently
+        results = await asyncio.gather(
+            ai_engine.summarize_logs(chat_content),
+            ai_engine.analyze_site_data(
+                text_input=context_text, 
+                weather_data=weather_current, 
+                project_data=projects_summary
+            )
         )
-        logger.info(f"AI Overall Analysis generated in {time.time() - step_start:.2f}s")
+        
+        site_summary_data = results[0]
+        analysis_overall = results[1]
+        
+        logger.info(f"AI Tasks (Summary + Analysis) completed in {time.time() - step_start:.2f}s")
         
         data = {
             "date": date_str,
@@ -408,7 +446,7 @@ async def send_daily_safety_tip(context: ContextTypes.DEFAULT_TYPE) -> None:
                 chat_id = int(setting.value)
         
         if chat_id:
-            tip = ai_engine.get_safety_advice()
+            tip = await ai_engine.get_safety_advice()
             await context.bot.send_message(chat_id=chat_id, text=tip)
         else:
             logger.warning("No safety channel configured. Run /set_safety_channel first.")

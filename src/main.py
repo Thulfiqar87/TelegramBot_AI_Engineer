@@ -1,6 +1,7 @@
 import logging
 import os
-from datetime import datetime, time
+import time
+from datetime import datetime, time as dt_time
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -191,7 +192,7 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
             # For simplicity, filtering by application-side or simple logic
             # Assuming timestamps are stored correctly.
             # Let's filter by > today start
-            today_start = datetime.combine(datetime.now().date(), time.min)
+            today_start = datetime.combine(datetime.now().date(), dt_time.min)
             result = await session.execute(select(ChatLog).where(ChatLog.timestamp >= today_start).order_by(ChatLog.timestamp))
             logs = result.scalars().all()
             
@@ -335,10 +336,10 @@ def main() -> None:
             application.job_queue.run_repeating(check_weather_alerts, interval=3600, first=10)
             
             # Schedule Daily Safety Advice at 8:00 AM Iraq Time (approximately 5:00 AM UTC)
-            application.job_queue.run_daily(send_daily_safety_tip, time=time(5, 0))
+            application.job_queue.run_daily(send_daily_safety_tip, time=dt_time(5, 0))
 
             # Schedule Activity Reminder at 10:00 AM Iraq Time (approximately 7:00 AM UTC)
-            application.job_queue.run_daily(check_activity_and_remind, time=time(7, 0))
+            application.job_queue.run_daily(check_activity_and_remind, time=dt_time(7, 0))
 
         # Restore handlers
         application.add_handler(CommandHandler("report", manual_report))
@@ -423,7 +424,7 @@ async def check_activity_and_remind(context: ContextTypes.DEFAULT_TYPE) -> None:
         
         async with AsyncSessionLocal() as session:
             # Check logs
-            today_start = datetime.combine(datetime.now().date(), time.min)
+            today_start = datetime.combine(datetime.now().date(), dt_time.min)
             result_logs = await session.execute(select(ChatLog).where(ChatLog.timestamp >= today_start).limit(1))
             if result_logs.scalar_one_or_none():
                 has_activity = True

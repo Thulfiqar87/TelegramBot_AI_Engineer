@@ -101,7 +101,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             except Exception as e:
                 logger.error(f"Error saving caption log: {e}")
 
-        await update.message.reply_text("Photo received and saved. Analyzing contents for report...")
+
         
         # Image analysis logic - REMOVED per user request
         # Analysis will happen during report generation
@@ -123,7 +123,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             logger.error(f"Error saving photo metadata to DB: {e}")
 
         # await update.message.reply_text(f"Analysis Complete: {analysis[:100]}...")
-        await update.message.reply_text("📸 Photo saved.")
+        await update.message.reply_text("تم حفظ الصورة  📸")
         
     except Exception as e:
         logger.error(f"Error in handle_photo: {e}")
@@ -348,6 +348,9 @@ def main() -> None:
             # Schedule Activity Reminder at 10:00 AM Iraq Time (approximately 7:00 AM UTC)
             application.job_queue.run_daily(check_activity_and_remind, time=dt_time(7, 0))
 
+            # Schedule Night Shift Reminder at 8:00 PM Iraq Time (approximately 5:00 PM UTC)
+            application.job_queue.run_daily(send_night_shift_reminder, time=dt_time(17, 0))
+
         # Restore handlers
         application.add_handler(CommandHandler("report", manual_report))
         application.add_handler(CommandHandler("set_safety_channel", set_safety_channel))
@@ -460,6 +463,26 @@ async def check_activity_and_remind(context: ContextTypes.DEFAULT_TYPE) -> None:
                 
     except Exception as e:
         logger.error(f"Error sending activity reminder: {e}")
+
+async def send_night_shift_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sends a reminder for night shift updates."""
+    try:
+        from src.models import BotSettings
+        chat_id = None
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(BotSettings).where(BotSettings.key == "safety_channel"))
+            setting = result.scalar_one_or_none()
+            if setting:
+                chat_id = int(setting.value)
+        
+        if chat_id:
+            msg = "مساء الخير يا أبطال 🌙\nيرجى تزويدي بتفاصيل وصور أعمال الشفت الليلي لإضافتها للتقرير اليومي. 📸📝"
+            await context.bot.send_message(chat_id=chat_id, text=msg)
+        else:
+            logger.warning("No channel configured for night shift reminder.")
+            
+    except Exception as e:
+        logger.error(f"Error sending night shift reminder: {e}")
 
 if __name__ == "__main__":
     main()

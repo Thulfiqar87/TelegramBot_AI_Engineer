@@ -217,7 +217,6 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
         step_start = time.time()
         projects_summary = await openproject_client.get_summary()
         logger.info(f"OpenProject summary fetched in {time.time() - step_start:.2f}s")
-        # projects_summary now contains {'active': [], 'incoming': []}
 
         # Get Photo metadata from DB
         step_start = time.time()

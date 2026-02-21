@@ -14,4 +14,3 @@ class WorkPackage(BaseModel):
 
 class ProjectSummary(BaseModel):
     active: List[WorkPackage] = []
-    incoming: List[WorkPackage] = []

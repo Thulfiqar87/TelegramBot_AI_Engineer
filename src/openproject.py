@@ -104,10 +104,9 @@ class OpenProjectClient:
             raise e # Retry will catch this if it fits exception type, otherwise logs and re-raises
 
     async def get_summary(self) -> dict:
-        """Returns a summary of work packages split into active and incoming."""
+        """Returns a summary of active work packages."""
         summary = {
-            "active": [],
-            "incoming": []
+            "active": []
         }
         
         try:
@@ -147,18 +146,10 @@ class OpenProjectClient:
                 if "in progress" in status_lower:
                     summary["active"].append(item)
                     logger.info(f"Added active package: {item['subject']} ({status})")
-                elif status_lower not in ["closed", "rejected", "completed", "on hold"]:
-                     # Check for upcoming: must have start date >= today logic, or just future
-                     # We'll assume anything not closed/in-progress with a start date is "upcoming" or "scheduled"
-                     if start_date:
-                         summary["incoming"].append(item)
-                         
+
             except Exception as e:
                 logger.warning(f"Error processing package {pkg.get('id')}: {e}")
                 continue
         
-        # Sort incoming by start date
-        summary["incoming"].sort(key=lambda x: x["startDate"] or "9999-12-31")
-        
-        logger.info(f"Summary prepared: {len(summary['active'])} active, {len(summary['incoming'])} upcoming.")
+        logger.info(f"Summary prepared: {len(summary['active'])} active.")
         return summary

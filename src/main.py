@@ -12,7 +12,7 @@ from src.weather import WeatherClient
 from src.openproject import OpenProjectClient
 from src.pdf_generator import PDFGenerator
 from src.database import init_db, get_db, AsyncSessionLocal
-from src.models import ChatLog, PhotoMetadata, ReportCounter
+from src.models import ChatLog, PhotoMetadata, ReportCounter, Report
 from sqlalchemy import select
 
 
@@ -279,6 +279,21 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
         step_start = time.time()
         await context.bot.send_document(chat_id=chat_id, document=open(pdf_path, 'rb'), filename=f"Site_Report_{date_str}_{report_id}.pdf")
         logger.info(f"Report sent to chat in {time.time() - step_start:.2f}s")
+        
+        # Save report tracking to DB
+        try:
+            async with AsyncSessionLocal() as session:
+                new_report = Report(
+                    report_id_str=report_id,
+                    date=date_str,
+                    file_path=pdf_path
+                )
+                session.add(new_report)
+                await session.commit()
+                logger.info("Report record saved to DB.")
+        except Exception as e:
+            logger.error(f"Error saving report to DB: {e}")
+            
         logger.info(f"Total report generation time: {time.time() - start_time:.2f}s")
         
     except Exception as e:
@@ -349,6 +364,9 @@ def main() -> None:
 
             # Schedule Night Shift Reminder at 8:00 PM Iraq Time (approximately 5:00 PM UTC)
             application.job_queue.run_daily(send_night_shift_reminder, time=dt_time(17, 0))
+            
+            # Schedule Auto-Generation of Daily Report at 9:00 PM Iraq Time (approximately 18:00 UTC)
+            application.job_queue.run_daily(check_and_auto_generate_report, time=dt_time(18, 0))
 
         # Restore handlers
         application.add_handler(CommandHandler("report", manual_report))
@@ -482,6 +500,37 @@ async def send_night_shift_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
             
     except Exception as e:
         logger.error(f"Error sending night shift reminder: {e}")
+
+async def check_and_auto_generate_report(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Checks if a report was generated today. If not, auto-generates it."""
+    try:
+        from src.models import BotSettings
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        
+        async with AsyncSessionLocal() as session:
+            # Check if report already exists for today
+            result = await session.execute(select(Report).where(Report.date == date_str))
+            report = result.scalar_one_or_none()
+            
+            if report:
+                logger.info(f"Report already generated for {date_str}. Skipping auto-generation.")
+                return
+                
+            # If not generated, fetch the safety channel to send the report
+            result_setting = await session.execute(select(BotSettings).where(BotSettings.key == "safety_channel"))
+            setting = result_setting.scalar_one_or_none()
+            
+            if setting:
+                chat_id = int(setting.value)
+                msg = "لم يتم إنشاء التقرير اليومي حتى الآن. جاري الإعداد التلقائي للتقرير... 🤖📝"
+                await context.bot.send_message(chat_id=chat_id, text=msg)
+                
+                # Trigger report generation
+                context.job_queue.run_once(generate_daily_report, 1, chat_id=chat_id)
+            else:
+                logger.warning("No safety channel configured for auto report generation.")
+    except Exception as e:
+        logger.error(f"Error checking/auto-generating report: {e}")
 
 if __name__ == "__main__":
     main()

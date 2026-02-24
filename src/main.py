@@ -158,15 +158,26 @@ async def check_weather_alerts(context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         alert_msg = await weather_client.check_severe_conditions()
         if alert_msg:
-            # Send to all admins or a specific group. 
-            # Since we don't have a reliable group ID stored yet, we'll send to ADMIN_IDS.
-            # Ideally, we should store the group_id from /start or /report.
-            # For now, let's send to the configured ADMIN_IDS.
-            for user_id in Config.ADMIN_IDS:
+            from src.models import BotSettings
+            chat_id = None
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(select(BotSettings).where(BotSettings.key == "safety_channel"))
+                setting = result.scalar_one_or_none()
+                if setting:
+                    chat_id = int(setting.value)
+            
+            if chat_id:
                 try:
-                    await context.bot.send_message(chat_id=user_id, text=alert_msg)
+                    await context.bot.send_message(chat_id=chat_id, text=alert_msg)
                 except Exception as e:
-                    logger.error(f"Failed to send alert to {user_id}: {e}")
+                    logger.error(f"Failed to send alert to group {chat_id}: {e}")
+            else:
+                logger.warning("No safety channel configured for weather alerts. Falling back to admin IDs.")
+                for user_id in Config.ADMIN_IDS:
+                    try:
+                        await context.bot.send_message(chat_id=user_id, text=alert_msg)
+                    except Exception as e:
+                        logger.error(f"Failed to send alert to {user_id}: {e}")
     except Exception as e:
         logger.error(f"Error checking weather alerts: {e}")
 

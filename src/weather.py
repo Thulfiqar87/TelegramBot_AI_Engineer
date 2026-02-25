@@ -58,12 +58,19 @@ class WeatherClient:
         """Checks for severe weather and returns an Arabic alert message if found."""
         alerts = []
         
+        from zoneinfo import ZoneInfo
+        from datetime import datetime
+        baghdad_tz = ZoneInfo("Asia/Baghdad")
+        current_hour = datetime.now(baghdad_tz).hour
+        
         # Check Current Wind
-        current = await self.get_current_weather()
-        if current:
-            wind_speed = current.get('wind', {}).get('speed', 0) * 3.6 # Convert m/s to km/h
-            if wind_speed > 30:
-                alerts.append(f"⚠️ **تنبيه رياح قوية / High Wind Alert**\nسرعة الرياح {wind_speed:.1f} كم/س. يرجى توخي الحذر وإيقاف الرافعات.\nWind speed is {wind_speed:.1f} km/h. Please exercise caution and stop cranes.")
+        # Restrict wind alerts between 10 PM (22:00) and 6 AM (06:00)
+        if not (22 <= current_hour or current_hour < 6):
+            current = await self.get_current_weather()
+            if current:
+                wind_speed = current.get('wind', {}).get('speed', 0) * 3.6 # Convert m/s to km/h
+                if wind_speed > 30:
+                    alerts.append(f"⚠️ **تنبيه رياح قوية / High Wind Alert**\nسرعة الرياح {wind_speed:.1f} كم/س. يرجى توخي الحذر وإيقاف الرافعات.\nWind speed is {wind_speed:.1f} km/h. Please exercise caution and stop cranes.")
 
         # Check Rain Forecast (next 3-6 hours)
         forecast = await self.get_forecast()

@@ -367,17 +367,20 @@ def main() -> None:
         if application.job_queue:
             application.job_queue.run_repeating(check_weather_alerts, interval=3600, first=10)
             
-            # Schedule Daily Safety Advice at 8:00 AM Iraq Time (approximately 5:00 AM UTC)
-            application.job_queue.run_daily(send_daily_safety_tip, time=dt_time(5, 0))
-
-            # Schedule Activity Reminder at 10:00 AM Iraq Time (approximately 7:00 AM UTC)
-            application.job_queue.run_daily(check_activity_and_remind, time=dt_time(7, 0))
-
-            # Schedule Night Shift Reminder at 8:00 PM Iraq Time (approximately 5:00 PM UTC)
-            application.job_queue.run_daily(send_night_shift_reminder, time=dt_time(17, 0))
+            from zoneinfo import ZoneInfo
+            baghdad_tz = ZoneInfo("Asia/Baghdad")
             
-            # Schedule Auto-Generation of Daily Report at 9:00 PM Iraq Time (approximately 18:00 UTC)
-            application.job_queue.run_daily(check_and_auto_generate_report, time=dt_time(18, 0))
+            # Schedule Daily Safety Advice at 8:00 AM Iraq Time
+            application.job_queue.run_daily(send_daily_safety_tip, time=dt_time(8, 0, tzinfo=baghdad_tz))
+
+            # Schedule Activity Reminder at 10:00 AM Iraq Time
+            application.job_queue.run_daily(check_activity_and_remind, time=dt_time(10, 0, tzinfo=baghdad_tz))
+
+            # Schedule Night Shift Reminder at 8:00 PM Iraq Time
+            application.job_queue.run_daily(send_night_shift_reminder, time=dt_time(20, 0, tzinfo=baghdad_tz))
+            
+            # Schedule Auto-Generation of Daily Report at 9:00 PM Iraq Time
+            application.job_queue.run_daily(check_and_auto_generate_report, time=dt_time(21, 0, tzinfo=baghdad_tz))
 
         # Restore handlers
         application.add_handler(CommandHandler("report", manual_report))
@@ -463,9 +466,12 @@ async def check_activity_and_remind(context: ContextTypes.DEFAULT_TYPE) -> None:
         async with AsyncSessionLocal() as session:
             # Check logs
             today_start = datetime.combine(datetime.now().date(), dt_time.min)
-            result_logs = await session.execute(select(ChatLog).where(ChatLog.timestamp >= today_start).limit(1))
-            if result_logs.scalar_one_or_none():
-                has_activity = True
+            result_logs = await session.execute(select(ChatLog).where(ChatLog.timestamp >= today_start))
+            logs = result_logs.scalars().all()
+            for log in logs:
+                if len(log.message.strip()) > 15 or "[PHOTO CAPTION]" in log.message:
+                    has_activity = True
+                    break
             
             # Check photos if no logs
             if not has_activity:

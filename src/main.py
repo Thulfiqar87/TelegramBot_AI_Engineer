@@ -376,6 +376,10 @@ def main() -> None:
             # Schedule Activity Reminder at 10:00 AM Iraq Time
             application.job_queue.run_daily(check_activity_and_remind, time=dt_time(10, 0, tzinfo=baghdad_tz))
 
+            # Schedule Weather Report at 10:00 AM and 6:00 PM Iraq Time
+            application.job_queue.run_daily(send_weather_report, time=dt_time(10, 0, tzinfo=baghdad_tz))
+            application.job_queue.run_daily(send_weather_report, time=dt_time(18, 0, tzinfo=baghdad_tz))
+
             # Schedule Night Shift Reminder at 8:00 PM Iraq Time
             application.job_queue.run_daily(send_night_shift_reminder, time=dt_time(20, 0, tzinfo=baghdad_tz))
             
@@ -455,6 +459,26 @@ async def send_daily_safety_tip(context: ContextTypes.DEFAULT_TYPE) -> None:
             
     except Exception as e:
         logger.error(f"Error sending safety advice: {e}")
+
+async def send_weather_report(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sends the 3-day weather forecast report."""
+    try:
+        from src.models import BotSettings
+        chat_id = None
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(BotSettings).where(BotSettings.key == "safety_channel"))
+            setting = result.scalar_one_or_none()
+            if setting:
+                chat_id = int(setting.value)
+        
+        if chat_id:
+            report_msg = await weather_client.get_three_day_forecast_report()
+            if report_msg:
+                await context.bot.send_message(chat_id=chat_id, text=report_msg)
+        else:
+            logger.warning("No safety channel configured for weather reports.")
+    except Exception as e:
+        logger.error(f"Error sending weather report: {e}")
 
 async def check_activity_and_remind(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Checks if there has been any activity today. If not, sends a reminder."""

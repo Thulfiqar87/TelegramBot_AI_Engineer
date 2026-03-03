@@ -72,19 +72,59 @@ class WeatherClient:
                 if wind_speed > 30:
                     alerts.append(f"⚠️ **تنبيه رياح قوية / High Wind Alert**\nسرعة الرياح {wind_speed:.1f} كم/س. يرجى توخي الحذر وإيقاف الرافعات.\nWind speed is {wind_speed:.1f} km/h. Please exercise caution and stop cranes.")
 
-        # Check Rain Forecast (next 3-6 hours)
-        forecast = await self.get_forecast()
-        if forecast:
-            # Check first 2 entries (next 6 hours)
-            for item in forecast.get('list', [])[:2]:
-                pop = item.get('pop', 0) * 100
-                if pop > 50:
-                    alerts.append(f"🌧️ **احتمالية أمطار / Rain Forecast**\nتوجد فرصة هطول أمطار بنسبة {pop:.0f}% خلال الساعات القادمة.\nThere is a {pop:.0f}% chance of rain in the coming hours.")
-                    break
-        
         if alerts:
             return "\n".join(alerts)
         return None
+
+    async def get_three_day_forecast_report(self) -> str:
+        """Generates a 3-day weather report in Arabic."""
+        forecast = await self.get_forecast()
+        if not forecast:
+            return "عذراً، لم أتمكن من جلب بيانات الطقس."
+            
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from collections import defaultdict
+        
+        baghdad_tz = ZoneInfo("Asia/Baghdad")
+        
+        # Group by date (YYYY-MM-DD)
+        daily_data = defaultdict(lambda: {'wind_speed': 0, 'pop': 0})
+        
+        for item in forecast.get('list', []):
+            dt = datetime.fromtimestamp(item['dt'], baghdad_tz)
+            date_str = dt.strftime('%Y-%m-%d')
+            
+            wind_speed = item.get('wind', {}).get('speed', 0) * 3.6 # Convert from m/s to km/h
+            pop = item.get('pop', 0) * 100 # percentage
+            
+            if wind_speed > daily_data[date_str]['wind_speed']:
+                daily_data[date_str]['wind_speed'] = wind_speed
+            if pop > daily_data[date_str]['pop']:
+                daily_data[date_str]['pop'] = pop
+                
+        # Get next 3 days
+        dates = sorted(daily_data.keys())[:3]
+        
+        report_lines = ["🌤️ **تقرير الطقس للأيام الثلاثة القادمة** 🌤️"]
+        
+        days_arabic = {
+            'Monday': 'الإثنين', 'Tuesday': 'الثلاثاء', 'Wednesday': 'الأربعاء',
+            'Thursday': 'الخميس', 'Friday': 'الجمعة', 'Saturday': 'السبت', 'Sunday': 'الأحد'
+        }
+        
+        for date_str in dates:
+            dt = datetime.strptime(date_str, '%Y-%m-%d')
+            day_name = days_arabic.get(dt.strftime('%A'), dt.strftime('%A'))
+            
+            wind = daily_data[date_str]['wind_speed']
+            rain_prob = daily_data[date_str]['pop']
+            
+            report_lines.append(f"\n📅 **{day_name} ({date_str})**")
+            report_lines.append(f"💨 أقصى سرعة للرياح: {wind:.1f} كم/س")
+            report_lines.append(f"🌧️ احتمالية هطول الأمطار: {rain_prob:.0f}%")
+            
+        return "\n".join(report_lines)
 
     def get_arabic_description(self, weather_id):
         """Maps OpenWeatherMap condition codes to Arabic descriptions."""

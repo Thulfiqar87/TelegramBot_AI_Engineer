@@ -5,7 +5,10 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
+
+ENV TZ=Asia/Baghdad
 
 # Set working directory
 WORKDIR /app

@@ -200,13 +200,25 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
         chat_content = ""
         
         async with AsyncSessionLocal() as session:
-            # Fetch logs for today (simplified: fetch all for now or filter by date)
-            # SQLite 'now' might differ, use python filters for precision or between clause
-            # For simplicity, filtering by application-side or simple logic
-            # Assuming timestamps are stored correctly.
-            # Let's filter by > today start
-            today_start = datetime.combine(datetime.now().date(), dt_time.min)
-            result = await session.execute(select(ChatLog).where(ChatLog.timestamp >= today_start).order_by(ChatLog.timestamp))
+            # Fetch logs for today (Baghdad Time)
+            from zoneinfo import ZoneInfo
+            baghdad_tz = ZoneInfo("Asia/Baghdad")
+            now_baghdad = datetime.now(baghdad_tz)
+            today_start = datetime.combine(now_baghdad.date(), dt_time.min).replace(tzinfo=baghdad_tz)
+            
+            logger.info(f"DEBUG: Fetching logs since {today_start} (Baghdad Time)")
+            
+            # Since DB timestamps are stored via datetime.now() [local to container], 
+            # and we set TZ=Asia/Baghdad in Dockerfile, we should be fine.
+            # But let's be safe and use >= today_start. 
+            # If the DB doesn't have tzinfo, we compare with naive.
+            query_start = today_start.replace(tzinfo=None)
+            
+            result = await session.execute(
+                select(ChatLog)
+                .where(ChatLog.timestamp >= query_start)
+                .order_by(ChatLog.timestamp)
+            )
             logs = result.scalars().all()
             
             if logs:
@@ -489,7 +501,11 @@ async def check_activity_and_remind(context: ContextTypes.DEFAULT_TYPE) -> None:
         
         async with AsyncSessionLocal() as session:
             # Check logs
-            today_start = datetime.combine(datetime.now().date(), dt_time.min)
+            from zoneinfo import ZoneInfo
+            baghdad_tz = ZoneInfo("Asia/Baghdad")
+            now_baghdad = datetime.now(baghdad_tz)
+            today_start = datetime.combine(now_baghdad.date(), dt_time.min)
+            
             result_logs = await session.execute(select(ChatLog).where(ChatLog.timestamp >= today_start))
             logs = result_logs.scalars().all()
             for log in logs:

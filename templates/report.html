@@ -120,6 +120,12 @@
                 {% endfor %}
             </div>
 
+            {% if photos_dropped_count > 0 %}
+            <div class="warning-box" style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.9em; text-align: center;">
+                ⚠️ تم إدراج أول {{ photos|length }} صورة فقط لضمان جودة التقرير. تم استبعاد {{ photos_dropped_count }} صورة إضافية.
+            </div>
+            {% endif %}
+
 
 
             <div class="footer">

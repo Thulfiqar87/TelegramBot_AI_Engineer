@@ -3,8 +3,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
-    GOOGLE_API_KEY: str = "deprecated"
-    DASHSCOPE_API_KEY: str = "deprecated"
     OPENAI_API_KEY: str | None = None
     OPENPROJECT_URL: str
     OPENPROJECT_API_KEY: str

@@ -1,24 +1,26 @@
-from openai import AsyncOpenAI
-from src.config import Config
+import asyncio
+import base64
 import json
 import logging
-import base64
-from PIL import Image
-import os
-import asyncio
+from openai import AsyncOpenAI
+from src.config import Config
 
 logger = logging.getLogger(__name__)
 
+
 class AIEngine:
     def __init__(self):
-        # Initialize OpenAI Client
         self.client = AsyncOpenAI(api_key=Config.OPENAI_API_KEY)
         self.model = "gpt-4o"
 
-    def _encode_image(self, image_path):
-        """Encodes a local image file to base64 string."""
+    def _sync_encode_image(self, image_path: str) -> str:
+        """Synchronous file read for use inside asyncio.to_thread."""
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
+
+    async def _encode_image(self, image_path: str) -> str:
+        """Encodes a local image file to base64, off the event loop."""
+        return await asyncio.to_thread(self._sync_encode_image, image_path)
 
     async def analyze_site_data(self, text_input=None, image_input=None, weather_data=None, project_data=None):
         """
@@ -26,7 +28,7 @@ class AIEngine:
         Incorporates weather and project context including images.
         """
         logger.info(f"Analyzing site data with GPT-4o: Text={bool(text_input)}, Image={bool(image_input)}")
-        
+
         # Build Context
         context_intro = (
             "بصفتك المنسق الذكي والمشرف العام لمشروع برج نؤاس، دورك جوهري في ضمان سير العمل بكفاءة وأمان.\n"
@@ -38,11 +40,11 @@ class AIEngine:
             "5. تقديم توصيات لتجاوز المعوقات وتحسين الإنتاجية.\n"
             "قم بتحليل البيانات التالية بناءً على هذا الدور:\n"
         )
-        
+
         context_data = ""
         if weather_data:
             context_data += f"سياق الطقس: {json.dumps(weather_data, ensure_ascii=False)}\n"
-        
+
         if project_data:
             context_data += f"سياق المشروع: {json.dumps(project_data, ensure_ascii=False)}\n"
 
@@ -56,16 +58,14 @@ class AIEngine:
         full_text = context_intro + context_data
         if text_input:
             full_text += f"\nالمدخلات النصية: {text_input}"
-        
-        # Add text part to user content
+
         messages[1]["content"].append({"type": "text", "text": full_text})
 
         # Add Image if present
         if image_input:
             if isinstance(image_input, str):
                 try:
-                    # Convert local path to base64
-                    base64_image = self._encode_image(image_input)
+                    base64_image = await self._encode_image(image_input)
                     messages[1]["content"].append({
                         "type": "image_url",
                         "image_url": {
@@ -99,7 +99,7 @@ class AIEngine:
 
         if not chat_logs:
             return default_response
-        
+
         prompt_text = (
             "أنت المنسق الذكي لموقع العمل. البيانات المدخلة هي سجلات محادثة من مهندسين ومشرفين متفرقين في الموقع.\n"
             "مهمتك هي تجميع هذه المعلومات في تقرير موحد، مع الانتباه الشديد لدمج المعلومات المكررة أو المتداخلة.\n"
@@ -113,7 +113,7 @@ class AIEngine:
             "تجاهل المحادثات الجانبية. استخدم لغة عربية هندسية رصينة.\n"
             f"سجلات المحادثة:\n{chat_logs}"
         )
-        
+
         try:
             response = await self.client.chat.completions.create(
                 model=self.model,
@@ -123,7 +123,7 @@ class AIEngine:
                 ],
                 response_format={"type": "json_object"}
             )
-            
+
             content = response.choices[0].message.content
             return json.loads(content)
 
@@ -147,7 +147,7 @@ class AIEngine:
                 ]
             )
             return response.choices[0].message.content.strip()
-                
+
         except Exception as e:
             logger.error(f"Error generating safety advice: {e}")
             return "⚠️ **تذكير بالسلامة:** تأكد من ارتداء الخوذة وحذاء السلامة في جميع الأوقات."

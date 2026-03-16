@@ -2,7 +2,7 @@ import logging
 import os
 import time
 import asyncio
-from datetime import datetime, time as dt_time
+from datetime import datetime, time as dt_time, timedelta
 from zoneinfo import ZoneInfo
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -306,6 +306,7 @@ def main() -> None:
         application.add_handler(CommandHandler("help", help_command))
         application.add_handler(CommandHandler("report", manual_report))
         application.add_handler(CommandHandler("set_safety_channel", set_safety_channel))
+        application.add_handler(CommandHandler("test_wp_alert", test_wp_alert))
 
         # Messages
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
@@ -321,6 +322,9 @@ def main() -> None:
 
             # Activity Reminder at 10:00 AM Iraq Time
             application.job_queue.run_daily(check_activity_and_remind, time=dt_time(10, 0, tzinfo=BAGHDAD_TZ))
+
+            # Due Workpackages Notification at 9:00 AM Iraq Time
+            application.job_queue.run_daily(check_due_workpackages, time=dt_time(9, 0, tzinfo=BAGHDAD_TZ))
 
             # Weather Report at 10:00 AM and 6:00 PM Iraq Time
             application.job_queue.run_daily(send_weather_report, time=dt_time(10, 0, tzinfo=BAGHDAD_TZ))
@@ -492,6 +496,73 @@ async def check_and_auto_generate_report(context: ContextTypes.DEFAULT_TYPE) -> 
                 logger.warning("No safety channel configured for auto report generation.")
     except Exception as e:
         logger.error(f"Error checking/auto-generating report: {e}")
+
+async def check_due_workpackages(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Checks for active workpackages that are due soon and notifies the group."""
+    try:
+        summary = await openproject_client.get_summary()
+        active_packages = summary.get("active", [])
+
+        if not active_packages:
+            return
+
+        now_baghdad = datetime.now(BAGHDAD_TZ)
+        today = now_baghdad.date()
+        tomorrow = today + timedelta(days=1)
+
+        due_packages = []
+
+        for pkg in active_packages:
+            due_date_str = pkg.get("dueDate")
+            if not due_date_str:
+                continue
+            
+            try:
+                due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
+                if due_date <= tomorrow:
+                    due_packages.append(pkg)
+            except ValueError:
+                logger.warning(f"Could not parse due date: {due_date_str} for project ID {pkg.get('id')}")
+                continue
+
+        if not due_packages:
+            logger.info("No workpackages due soon.")
+            return
+
+        alert_lines = ["⚠️ *تنبيه: المهام التالية اقترب موعد تسليمها أو تأخرت:*"]
+        for pkg in due_packages:
+            alert_lines.append(f"🔸 {pkg.get('subject')} (تاريخ الانتهاء: {pkg.get('dueDate')})")
+
+        alert_msg = "\n".join(alert_lines)
+
+        chat_id = None
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(BotSettings).where(BotSettings.key == "safety_channel"))
+            setting = result.scalar_one_or_none()
+            if setting:
+                chat_id = int(setting.value)
+
+        if chat_id:
+            await context.bot.send_message(chat_id=chat_id, text=alert_msg, parse_mode='Markdown')
+        else:
+            logger.warning("No safety channel configured for workpackage alerts. Falling back to admin IDs.")
+            for user_id in Config.ADMIN_IDS:
+                try:
+                    await context.bot.send_message(chat_id=user_id, text=alert_msg, parse_mode='Markdown')
+                except Exception as e:
+                    logger.error(f"Failed to send alert to {user_id}: {e}")
+    except Exception as e:
+        logger.error(f"Error checking due workpackages: {e}")
+
+async def test_wp_alert(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Manually trigger workpackage alert generation."""
+    user_id = update.effective_user.id
+    if user_id not in Config.ADMIN_IDS:
+        await update.message.reply_text("عذراً، هذا الأمر متاح للمشرفين فقط. ⛔")
+        return
+
+    await update.message.reply_text("جاري التحقق من المهام المقتربة... ⏳")
+    context.job_queue.run_once(check_due_workpackages, 1)
 
 if __name__ == "__main__":
     main()

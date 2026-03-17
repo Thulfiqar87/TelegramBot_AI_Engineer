@@ -75,7 +75,17 @@
                     {% for task in projects.active %}
                     <li>
                         <strong>{{ task.subject }}</strong> - {{ task.status }}
-                        <span class="due-date">📅 Due: {{ task.dueDate }}</span>
+                        {% if task.dueDate %}<span class="due-date">📅 Due: {{ task.dueDate }}</span>{% endif %}
+                        {% if task.children %}
+                        <ul style="margin-top: 5px; margin-bottom: 5px;">
+                            {% for child in task.children %}
+                            <li>
+                                <strong>{{ child.subject }}</strong> - {{ child.status }}
+                                {% if child.dueDate %}<span class="due-date">📅 Due: {{ child.dueDate }}</span>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
                     </li>
                     {% else %}
                     <li>لا يوجد أعمال نشطة حالياً.</li>

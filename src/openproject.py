@@ -122,27 +122,70 @@ class OpenProjectClient:
 
         logger.info(f"Processing {len(packages)} work packages for summary...")
 
+        active_items = []
         for pkg in packages:
             try:
                 status = pkg.get("_links", {}).get("status", {}).get("title", "").strip()
                 status_lower = status.lower()
 
-                item = {
-                    "id": pkg.get("id"),
-                    "subject": pkg.get("subject"),
-                    "status": status,
-                    "dueDate": pkg.get("dueDate"),
-                    "startDate": pkg.get("startDate")
-                }
-
                 # Case-insensitive substring match for active packages
                 if "in progress" in status_lower:
-                    summary["active"].append(item)
+                    parent_link = pkg.get("_links", {}).get("parent", {})
+                    parent_id = None
+                    parent_title = None
+                    if parent_link and parent_link.get("href"):
+                        try:
+                            parent_id = int(parent_link.get("href").split("/")[-1])
+                            parent_title = parent_link.get("title")
+                        except ValueError:
+                            pass
+
+                    item = {
+                        "id": pkg.get("id"),
+                        "subject": pkg.get("subject"),
+                        "status": status,
+                        "dueDate": pkg.get("dueDate"),
+                        "startDate": pkg.get("startDate"),
+                        "parent_id": parent_id,
+                        "parent_title": parent_title,
+                        "children": []
+                    }
+                    active_items.append(item)
                     logger.info(f"Added active package: {item['subject']} ({status})")
 
             except Exception as e:
                 logger.warning(f"Error processing package {pkg.get('id')}: {e}")
                 continue
 
-        logger.info(f"Summary prepared: {len(summary['active'])} active.")
-        return summary
+        # Grouping logic
+        item_map = {item["id"]: item for item in active_items}
+        top_level = []
+        dummy_parents = {}
+
+        for item in active_items:
+            pid = item["parent_id"]
+            if pid:
+                if pid in item_map:
+                    # Parent is also in active items
+                    item_map[pid]["children"].append(item)
+                else:
+                    # Parent is not explicitly "In Progress", create dummy parent
+                    if pid not in dummy_parents:
+                        dummy_parents[pid] = {
+                            "id": pid,
+                            "subject": item["parent_title"] or f"مجموعة أعمال {pid}",
+                            "status": "مهام فرعية قيد الإنجاز",
+                            "dueDate": "",
+                            "startDate": "",
+                            "children": []
+                        }
+                    dummy_parents[pid]["children"].append(item)
+            else:
+                top_level.append(item)
+
+        top_level.extend(dummy_parents.values())
+        top_level.sort(key=lambda x: x["id"])
+
+        summary["active"] = top_level
+        logger.info(f"Summary prepared: {len(summary['active'])} top-level active groups.")
+        return dict(summary)

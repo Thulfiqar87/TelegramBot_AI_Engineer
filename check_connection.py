@@ -4,7 +4,7 @@ import aiohttp
 import sys
 
 # Get URL from env or default
-url = os.getenv("OPENPROJECT_URL", "http://192.168.1.8:8080")
+url = os.getenv("OPENPROJECT_URL", "http://192.168.0.17:8080")
 api_key = os.getenv("OPENPROJECT_API_KEY")
 
 print(f"--- Diagnostic: Checking OpenProject Connection ---")

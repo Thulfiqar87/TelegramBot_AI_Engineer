@@ -1,26 +1,24 @@
+# Environment & secrets
+.env
+*.env.*
+
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-*.pyd
-.Python
-env/
 venv/
 .venv/
-pip-log.txt
-pip-delete-this-directory.txt
+*.egg-info/
 
-# Environment Variables
-.env
-
-# Data & Logs
+# Data & generated files
 data/
-logs/
-reports/
+*.db
+*.pdf
 
-# Docker
-.docker/
-
-# IDEs
+# IDE
 .vscode/
 .idea/
+
+# OS
+.DS_Store
+Thumbs.db

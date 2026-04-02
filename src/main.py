@@ -2,7 +2,7 @@ import logging
 import os
 import time
 import asyncio
-from datetime import datetime, time as dt_time, timedelta
+from datetime import datetime, time as dt_time, timedelta, timezone
 from zoneinfo import ZoneInfo
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -29,6 +29,23 @@ openproject_client = OpenProjectClient()
 pdf_generator = PDFGenerator()
 
 BAGHDAD_TZ = ZoneInfo("Asia/Baghdad")
+
+
+def _utcnow() -> datetime:
+    """Returns current time as timezone-naive UTC (SQLite compatible)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _baghdad_date_str() -> str:
+    """Returns today's date string in Baghdad local time (the site's work day)."""
+    return datetime.now(BAGHDAD_TZ).strftime("%Y-%m-%d")
+
+
+def _today_start_utc() -> datetime:
+    """Returns Baghdad midnight as a naive UTC datetime for DB range queries."""
+    now_baghdad = datetime.now(BAGHDAD_TZ)
+    midnight_baghdad = datetime.combine(now_baghdad.date(), dt_time.min, tzinfo=BAGHDAD_TZ)
+    return midnight_baghdad.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 async def post_init(application: Application) -> None:
@@ -64,8 +81,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     try:
         photo_file = await update.message.photo[-1].get_file()
 
-        # Save photo to disk
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        # Save photo to disk — use Baghdad local date as the work-day identifier
+        date_str = _baghdad_date_str()
         log_dir = os.path.join(Config.LOGS_DIR, date_str, "photos")
         os.makedirs(log_dir, exist_ok=True)
 
@@ -84,7 +101,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                         user_id=str(update.message.from_user.id),
                         username=str(username),
                         message=f"[PHOTO CAPTION]: {caption}",
-                        timestamp=datetime.now()
+                        timestamp=_utcnow()
                     )
                     session.add(log_entry)
 
@@ -93,7 +110,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     file_path=file_path,
                     analysis="",
                     caption=caption or "",
-                    timestamp=datetime.now(),
+                    timestamp=_utcnow(),
                     date_str=date_str
                 )
                 session.add(photo_entry)
@@ -109,27 +126,30 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def generate_report_id():
     """Generates a unique report ID in format BN-MMM-YY-NNN using DB."""
-    now = datetime.now()
+    # Use Baghdad local time so the report ID matches the site's work day
+    now = datetime.now(BAGHDAD_TZ)
     month_str = now.strftime("%b").upper()
     year_str = now.strftime("%y")
     month_key = now.strftime("%Y-%m")
 
     try:
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
         async with AsyncSessionLocal() as session:
-            result = await session.execute(select(ReportCounter).where(ReportCounter.month_key == month_key))
-            counter = result.scalar_one_or_none()
-
-            if not counter:
-                counter = ReportCounter(month_key=month_key, count=0)
-                session.add(counter)
-
-            counter.count += 1
+            # Atomic upsert — safe against simultaneous /report triggers
+            stmt = sqlite_insert(ReportCounter).values(month_key=month_key, count=1)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["month_key"],
+                set_={"count": ReportCounter.count + 1}
+            )
+            await session.execute(stmt)
             await session.commit()
 
+            result = await session.execute(select(ReportCounter).where(ReportCounter.month_key == month_key))
+            counter = result.scalar_one()
             return f"BN-{month_str}-{year_str}-{counter.count:03d}"
     except Exception as e:
         logger.error(f"Error generating report ID: {e}")
-        return f"BN-ERR-{int(datetime.now().timestamp())}"
+        return f"BN-ERR-{int(_utcnow().timestamp())}"
 
 async def check_weather_alerts(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Checks for severe weather and sends alerts to admin/group."""
@@ -173,16 +193,16 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
 
         # Read Logs from DB
         step_start = time.time()
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = _baghdad_date_str()  # Baghdad work-day date for photo/report filtering
         chat_content = ""
 
         async with AsyncSessionLocal() as session:
-            now_baghdad = datetime.now(BAGHDAD_TZ)
-            today_start = datetime.combine(now_baghdad.date(), dt_time.min)
+            # Timestamps are stored as naive UTC; convert Baghdad midnight to UTC for query
+            today_start_utc = _today_start_utc()
 
             result = await session.execute(
                 select(ChatLog)
-                .where(ChatLog.timestamp >= today_start)
+                .where(ChatLog.timestamp >= today_start_utc)
                 .order_by(ChatLog.timestamp)
             )
             logs = result.scalars().all()
@@ -210,10 +230,12 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
             photos_db = result.scalars().all()
 
             for p in photos_db:
+                # p.timestamp is naive UTC — convert to Baghdad for display
+                ts_baghdad = p.timestamp.replace(tzinfo=timezone.utc).astimezone(BAGHDAD_TZ)
                 photos_data.append({
                     "file_path": p.file_path,
                     "abs_path": os.path.abspath(p.file_path),
-                    "timestamp": p.timestamp.strftime("%H:%M %p"),
+                    "timestamp": ts_baghdad.strftime("%H:%M"),
                     "caption": p.caption
                 })
         logger.debug(f"Photos processed in {time.time() - step_start:.2f}s")
@@ -273,6 +295,14 @@ async def generate_daily_report(context: ContextTypes.DEFAULT_TYPE) -> None:
 
     except Exception as e:
         logger.error(f"Error generating daily report: {e}")
+        # Notify the channel so the failure is not silent
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"❌ فشل إنشاء التقرير اليومي. يرجى المحاولة مرة أخرى بالأمر /report\nالخطأ: {e}"
+            )
+        except Exception:
+            pass  # Don't let notification failure mask the original error log
 
 async def save_log(update: Update):
     """Saves message to DB."""
@@ -286,7 +316,7 @@ async def save_log(update: Update):
                 user_id=str(user.id),
                 username=username,
                 message=message,
-                timestamp=datetime.now()
+                timestamp=_utcnow()
             )
             session.add(log_entry)
             await session.commit()
@@ -356,6 +386,7 @@ async def set_safety_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = update.effective_user.id
     if user_id not in Config.ADMIN_IDS:
         logger.warning(f"Access denied. User {user_id} not in admin list.")
+        await update.message.reply_text("عذراً، هذا الأمر متاح للمشرفين فقط. ⛔")
         return
 
     chat_id = update.effective_chat.id
@@ -416,14 +447,13 @@ async def send_weather_report(context: ContextTypes.DEFAULT_TYPE) -> None:
 async def check_activity_and_remind(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Checks if there has been any activity today. If not, sends a reminder."""
     try:
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = _baghdad_date_str()
         has_activity = False
 
         async with AsyncSessionLocal() as session:
-            now_baghdad = datetime.now(BAGHDAD_TZ)
-            today_start = datetime.combine(now_baghdad.date(), dt_time.min)
+            today_start_utc = _today_start_utc()
 
-            result_logs = await session.execute(select(ChatLog).where(ChatLog.timestamp >= today_start))
+            result_logs = await session.execute(select(ChatLog).where(ChatLog.timestamp >= today_start_utc))
             logs = result_logs.scalars().all()
             for log in logs:
                 if len(log.message.strip()) > 15 or "[PHOTO CAPTION]" in log.message:
@@ -474,7 +504,7 @@ async def send_night_shift_reminder(context: ContextTypes.DEFAULT_TYPE) -> None:
 async def check_and_auto_generate_report(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Checks if a report was generated today. If not, auto-generates it."""
     try:
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = _baghdad_date_str()
 
         async with AsyncSessionLocal() as session:
             result = await session.execute(select(Report).where(Report.date == date_str))

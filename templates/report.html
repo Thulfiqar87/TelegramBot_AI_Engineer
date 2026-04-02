@@ -29,29 +29,24 @@
     <!-- Section 1: Weather -->
     <div class="section">
         <h3>1. حالة الطقس (Weather Conditions)</h3>
-
         <div class="subsection">
-
             {% if weather.current %}
             <div class="weather-current-grid">
                 <div class="weather-item">
-                    <img src="https://cdn-icons-png.flaticon.com/512/7794/7794499.png" alt="Temp Icon"
-                        class="weather-icon-small">
+                    <span class="weather-icon-small">🌡️</span>
                     <div>
                         <span class="label">درجة الحرارة</span>
                         <span class="value">{{ weather.current.main.temp }}°C</span>
                     </div>
                 </div>
                 <div class="weather-item">
-                    <img src="https://cdn-icons-png.flaticon.com/512/2011/2011448.png" alt="Wind Icon"
-                        class="weather-icon-small">
+                    <span class="weather-icon-small">💨</span>
                     <div>
                         <span class="label">سرعة الرياح</span>
                         <span class="value">{{ weather.current.wind.speed }} m/s</span>
                     </div>
                 </div>
                 <div class="weather-item">
-                    <!-- Use the icon from API if available, else generic -->
                     <img src="{{ weather.current.weather[0].icon_url }}" alt="Condition Icon"
                         class="weather-icon-small">
                     <div>
@@ -64,83 +59,76 @@
             <p>بيانات غير متاحة</p>
             {% endif %}
         </div>
+    </div>
 
-        <!-- Section 2: OpenProject -->
-        <div class="section">
-            <h3>2. بيانات المشروع (Project Data)</h3>
-
-            <div class="subsection">
-                <h4>الأعمال النشطة حالياً (Active Work Packages)</h4>
-                <ul>
-                    {% for task in projects.active %}
-                    <li>
-                        <strong><a href="{{ task.url }}" style="color: inherit; text-decoration: underline;">{{ task.subject }}</a></strong> - {{ task.status }}
-                        {% if task.dueDate %}<span class="due-date">📅 Due: {{ task.dueDate }}</span>{% endif %}
-                        {% if task.children %}
-                        <ul style="margin-top: 5px; margin-bottom: 5px;">
-                            {% for child in task.children %}
-                            <li>
-                                <strong><a href="{{ child.url }}" style="color: inherit; text-decoration: underline;">{{ child.subject }}</a></strong> - {{ child.status }}
-                                {% if child.dueDate %}<span class="due-date">📅 Due: {{ child.dueDate }}</span>{% endif %}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-                    </li>
-                    {% else %}
-                    <li>لا يوجد أعمال نشطة حالياً.</li>
-                    {% endfor %}
-                </ul>
-            </div>
-
-        </div>
-
-        <!-- Section 3: Chat Summary -->
-        <div class="section">
-            <h3>3. ملخص أنشطة الموقع (Site Activities Summary)</h3>
-
-            <div class="subsection">
-                <h4>القوى العاملة والمعدات (Site Manpower and Machinery)</h4>
-                <div class="content">
-                    {{ site_manpower_machinery | safe }}
-                </div>
-            </div>
-
-            <div class="subsection">
-                <h4>أنشطة الموقع (Site Activities)</h4>
-                <div class="content">
-                    {{ site_activities | safe }}
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 4: Photos & Analysis -->
-        <div class="section">
-            <h3>4. التوثيق الصوري (Photo Documentation)</h3>
-
-            <div class="photo-grid">
-                {% for photo in photos %}
-                <div class="photo-item">
-                    <!-- Use base64 image -->
-                    <img src="data:image/jpeg;base64,{{ photo.b64 }}" class="site-photo">
-                    <div class="photo-number">صورة {{ loop.index }}</div>
-                </div>
+    <!-- Section 2: OpenProject -->
+    <div class="section">
+        <h3>2. بيانات المشروع (Project Data)</h3>
+        <div class="subsection">
+            <h4>الأعمال النشطة حالياً (Active Work Packages)</h4>
+            <ul>
+                {% for task in projects.active %}
+                <li>
+                    <strong><a href="{{ task.url }}" style="color: inherit; text-decoration: underline;">{{ task.subject }}</a></strong> - {{ task.status }}
+                    {% if task.dueDate %}<span class="due-date">📅 Due: {{ task.dueDate }}</span>{% endif %}
+                    {% if task.children %}
+                    <ul style="margin-top: 5px; margin-bottom: 5px;">
+                        {% for child in task.children %}
+                        <li>
+                            <strong><a href="{{ child.url }}" style="color: inherit; text-decoration: underline;">{{ child.subject }}</a></strong> - {{ child.status }}
+                            {% if child.dueDate %}<span class="due-date">📅 Due: {{ child.dueDate }}</span>{% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </li>
                 {% else %}
-                <p>لا يوجد صور موثقة اليوم.</p>
+                <li>لا يوجد أعمال نشطة حالياً.</li>
                 {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Section 3: Chat Summary -->
+    <div class="section">
+        <h3>3. ملخص أنشطة الموقع (Site Activities Summary)</h3>
+        <div class="subsection">
+            <h4>القوى العاملة والمعدات (Site Manpower and Machinery)</h4>
+            <div class="content">
+                {{ site_manpower_machinery | safe }}
             </div>
-
-            {% if photos_dropped_count > 0 %}
-            <div class="warning-box" style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.9em; text-align: center;">
-                ⚠️ تم إدراج أول {{ photos|length }} صورة فقط لضمان جودة التقرير. تم استبعاد {{ photos_dropped_count }} صورة إضافية.
+        </div>
+        <div class="subsection">
+            <h4>أنشطة الموقع (Site Activities)</h4>
+            <div class="content">
+                {{ site_activities | safe }}
             </div>
-            {% endif %}
+        </div>
+    </div>
 
-
-
-            <div class="footer">
-                <p>تم انشاء التقرير بواسطة AI Site Coordinator © {{ date }} برج نؤاس. جميع الحقوق محفوظة.</p>
+    <!-- Section 4: Photos -->
+    <div class="section">
+        <h3>4. التوثيق الصوري (Photo Documentation)</h3>
+        <div class="photo-grid">
+            {% for photo in photos %}
+            <div class="photo-item">
+                <img src="data:image/jpeg;base64,{{ photo.b64 }}" class="site-photo">
+                <div class="photo-number">صورة {{ loop.index }}{% if photo.timestamp %} — {{ photo.timestamp }}{% endif %}</div>
             </div>
+            {% else %}
+            <p>لا يوجد صور موثقة اليوم.</p>
+            {% endfor %}
+        </div>
+        {% if photos_dropped_count > 0 %}
+        <div class="warning-box" style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.9em; text-align: center;">
+            ⚠️ تم إدراج أول {{ photos|length }} صورة فقط لضمان جودة التقرير. تم استبعاد {{ photos_dropped_count }} صورة إضافية.
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>تم انشاء التقرير بواسطة AI Site Coordinator © {{ date }} برج نؤاس. جميع الحقوق محفوظة.</p>
+    </div>
+
 </body>
-
 </html>

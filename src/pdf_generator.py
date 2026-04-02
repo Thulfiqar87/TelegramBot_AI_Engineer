@@ -23,10 +23,18 @@ class PDFGenerator:
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(args=['--no-sandbox'])
 
-        # Cache logo — it never changes, no need to re-read it per report
+        # Cache logo and CSS — both are static and never change between reports
         logo_path = os.path.join("templates", "src", "logo.png")
         self._logo_b64 = await self._encode_file(logo_path)
-        logger.info("Logo cached.")
+
+        css_path = os.path.join("templates", "style.css")
+        self._css = await asyncio.to_thread(self._sync_read_text, css_path)
+        logger.info("Logo and CSS cached.")
+
+    @staticmethod
+    def _sync_read_text(path: str) -> str:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
 
     async def close_browser(self):
         """Closes the browser instance."""
@@ -112,10 +120,7 @@ class PDFGenerator:
         page = await self.browser.new_page()
         try:
             await page.set_content(html_content, wait_until='domcontentloaded', timeout=60000)
-
-            with open("templates/style.css", "r") as f:
-                css = f.read()
-            await page.add_style_tag(content=css)
+            await page.add_style_tag(content=self._css)
 
             report_id = data.get('report_id', datetime.now().strftime("%Y%m%d%H%M%S"))
             filename = f"Site_Report_{report_id}.pdf"

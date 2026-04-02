@@ -3,6 +3,11 @@ from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime, timezone
 
 
+def _utcnow():
+    """Returns current UTC time as a timezone-naive datetime (SQLite compatible)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -14,7 +19,7 @@ class ChatLog(Base):
     user_id = Column(String, index=True)
     username = Column(String)
     message = Column(Text)
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp = Column(DateTime, default=_utcnow)
 
     def __repr__(self):
         return f"<ChatLog(user={self.username}, date={self.timestamp})>"
@@ -26,7 +31,7 @@ class Report(Base):
     report_id_str = Column(String, unique=True, index=True) # e.g. BN-FEB-26-001
     date = Column(String) # YYYY-MM-DD
     file_path = Column(String)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=_utcnow)
 
 class PhotoMetadata(Base):
     __tablename__ = "photo_metadata"
@@ -36,7 +41,7 @@ class PhotoMetadata(Base):
     file_path = Column(String)
     analysis = Column(Text)
     caption = Column(Text, nullable=True)
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp = Column(DateTime, default=_utcnow)
     date_str = Column(String, index=True) # YYYY-MM-DD required for filtering by day
 
 class ReportCounter(Base):

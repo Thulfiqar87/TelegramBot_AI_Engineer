@@ -129,7 +129,7 @@ class OpenProjectClient:
                 status_lower = status.lower()
 
                 # Case-insensitive substring match for active packages
-                if "in progress" in status_lower:
+                if "in progress" in status_lower or "on hold" in status_lower:
                     parent_link = pkg.get("_links", {}).get("parent", {})
                     parent_id = None
                     parent_title = None
@@ -148,6 +148,7 @@ class OpenProjectClient:
                         "startDate": pkg.get("startDate"),
                         "parent_id": parent_id,
                         "parent_title": parent_title,
+                        "url": f"{self.base_url}/work_packages/{pkg.get('id')}/activity" if pkg.get("id") else "",
                         "children": []
                     }
                     active_items.append(item)
@@ -177,6 +178,7 @@ class OpenProjectClient:
                             "status": "مهام فرعية قيد الإنجاز",
                             "dueDate": "",
                             "startDate": "",
+                            "url": f"{self.base_url}/work_packages/{pid}/activity",
                             "children": []
                         }
                     dummy_parents[pid]["children"].append(item)

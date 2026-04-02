@@ -74,13 +74,13 @@
                 <ul>
                     {% for task in projects.active %}
                     <li>
-                        <strong>{{ task.subject }}</strong> - {{ task.status }}
+                        <strong><a href="{{ task.url }}" style="color: inherit; text-decoration: underline;">{{ task.subject }}</a></strong> - {{ task.status }}
                         {% if task.dueDate %}<span class="due-date">📅 Due: {{ task.dueDate }}</span>{% endif %}
                         {% if task.children %}
                         <ul style="margin-top: 5px; margin-bottom: 5px;">
                             {% for child in task.children %}
                             <li>
-                                <strong>{{ child.subject }}</strong> - {{ child.status }}
+                                <strong><a href="{{ child.url }}" style="color: inherit; text-decoration: underline;">{{ child.subject }}</a></strong> - {{ child.status }}
                                 {% if child.dueDate %}<span class="due-date">📅 Due: {{ child.dueDate }}</span>{% endif %}
                             </li>
                             {% endfor %}

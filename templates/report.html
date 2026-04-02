@@ -66,26 +66,32 @@
         <h3>2. بيانات المشروع (Project Data)</h3>
         <div class="subsection">
             <h4>الأعمال النشطة حالياً (Active Work Packages)</h4>
-            <ul>
+            {% if projects.active %}
+            <div class="wp-list">
                 {% for task in projects.active %}
-                <li>
-                    <strong><a href="{{ task.url }}" style="color: inherit; text-decoration: underline;">{{ task.subject }}</a></strong> - {{ task.status }}
-                    {% if task.dueDate %}<span class="due-date">📅 Due: {{ task.dueDate }}</span>{% endif %}
+                <div class="wp-parent">
+                    <div class="wp-parent-header">
+                        <span class="wp-status-badge wp-status-{{ task.status | lower | replace(' ', '-') }}">{{ task.status }}</span>
+                        <a href="{{ task.url }}" class="wp-title">{{ task.subject }}</a>
+                        {% if task.dueDate %}<span class="wp-due">📅 {{ task.dueDate }}</span>{% endif %}
+                    </div>
                     {% if task.children %}
-                    <ul style="margin-top: 5px; margin-bottom: 5px;">
+                    <div class="wp-children">
                         {% for child in task.children %}
-                        <li>
-                            <strong><a href="{{ child.url }}" style="color: inherit; text-decoration: underline;">{{ child.subject }}</a></strong> - {{ child.status }}
-                            {% if child.dueDate %}<span class="due-date">📅 Due: {{ child.dueDate }}</span>{% endif %}
-                        </li>
+                        <div class="wp-child">
+                            <span class="wp-status-badge wp-status-{{ child.status | lower | replace(' ', '-') }}">{{ child.status }}</span>
+                            <a href="{{ child.url }}" class="wp-title">{{ child.subject }}</a>
+                            {% if child.dueDate %}<span class="wp-due">📅 {{ child.dueDate }}</span>{% endif %}
+                        </div>
                         {% endfor %}
-                    </ul>
+                    </div>
                     {% endif %}
-                </li>
-                {% else %}
-                <li>لا يوجد أعمال نشطة حالياً.</li>
+                </div>
                 {% endfor %}
-            </ul>
+            </div>
+            {% else %}
+            <p class="no-data">لا يوجد أعمال نشطة حالياً.</p>
+            {% endif %}
         </div>
     </div>
 

@@ -165,3 +165,93 @@ ul {
 li {
     margin-bottom: 8px;
 }
+
+/* Work Package Cascade */
+.wp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.wp-parent {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.wp-parent-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background-color: #f0f4f4;
+    border-right: 4px solid #1a6563;
+}
+
+.wp-children {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #dee2e6;
+}
+
+.wp-child {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px 7px 14px;
+    padding-right: 32px;
+    border-bottom: 1px solid #f0f0f0;
+    background-color: #ffffff;
+}
+
+.wp-child:last-child {
+    border-bottom: none;
+}
+
+.wp-title {
+    font-weight: bold;
+    color: #1a6563;
+    text-decoration: none;
+    flex: 1;
+}
+
+.wp-title:hover {
+    text-decoration: underline;
+}
+
+.wp-due {
+    font-size: 0.82em;
+    color: #c62828;
+    background-color: #ffebee;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.wp-status-badge {
+    font-size: 0.78em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-weight: bold;
+}
+
+.wp-status-in-progress {
+    background-color: #e3f2fd;
+    color: #1565c0;
+}
+
+.wp-status-on-hold {
+    background-color: #fff8e1;
+    color: #f57f17;
+}
+
+.wp-status-مهام-فرعية-نشطة {
+    background-color: #f3e5f5;
+    color: #6a1b9a;
+}
+
+.no-data {
+    color: #6c757d;
+    font-style: italic;
+}

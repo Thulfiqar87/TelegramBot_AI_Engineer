@@ -92,15 +92,15 @@ class OpenProjectClient:
         wait=wait_exponential(multiplier=1, min=2, max=10)
     )
     async def get_work_packages(self):
-        """Fetches work packages from OpenProject with retry logic."""
+        """Fetches ALL work packages from OpenProject with retry logic (no pagination limit)."""
         try:
-            url = f"{self.base_url}/api/v3/work_packages"
+            url = f"{self.base_url}/api/v3/work_packages?pageSize=500"
 
             # Add project filter if applicable
             project_id = await self._get_project_id()
             if project_id:
                 filters = [{"project": {"operator": "=", "values": [str(project_id)]}}]
-                url += f"?filters={quote(json.dumps(filters))}"
+                url += f"&filters={quote(json.dumps(filters))}"
 
             async with self._get_session().get(url) as response:
                 response.raise_for_status()
@@ -111,83 +111,94 @@ class OpenProjectClient:
             raise
 
     async def get_summary(self) -> dict:
-        """Returns a summary of active work packages."""
+        """Returns a cascaded summary of active (In Progress / On Hold) work packages."""
         summary = {"active": []}
 
         try:
             packages = await self.get_work_packages()
         except Exception:
-            # Fallback to empty if retries fail
             return summary
 
         logger.info(f"Processing {len(packages)} work packages for summary...")
 
-        active_items = []
-        for pkg in packages:
+        # Build a full lookup of all packages (for parent resolution)
+        all_pkg_map = {pkg.get("id"): pkg for pkg in packages}
+
+        def _make_item(pkg, children=None):
+            pkg_id = pkg.get("id")
+            status = pkg.get("_links", {}).get("status", {}).get("title", "").strip()
+            return {
+                "id": pkg_id,
+                "subject": pkg.get("subject", ""),
+                "status": status,
+                "dueDate": pkg.get("dueDate") or "",
+                "startDate": pkg.get("startDate") or "",
+                "url": f"{self.base_url}/work_packages/{pkg_id}/activity" if pkg_id else "",
+                "children": children or []
+            }
+
+        def _is_active(pkg):
+            status = pkg.get("_links", {}).get("status", {}).get("title", "").lower()
+            return "in progress" in status or "on hold" in status
+
+        def _parent_id(pkg):
+            href = pkg.get("_links", {}).get("parent", {}).get("href")
+            if not href:
+                return None
             try:
-                status = pkg.get("_links", {}).get("status", {}).get("title", "").strip()
-                status_lower = status.lower()
+                return int(href.split("/")[-1])
+            except ValueError:
+                return None
 
-                # Case-insensitive substring match for active packages
-                if "in progress" in status_lower or "on hold" in status_lower:
-                    parent_link = pkg.get("_links", {}).get("parent", {})
-                    parent_id = None
-                    parent_title = None
-                    if parent_link and parent_link.get("href"):
-                        try:
-                            parent_id = int(parent_link.get("href").split("/")[-1])
-                            parent_title = parent_link.get("title")
-                        except ValueError:
-                            pass
+        # Separate into parents (no parent link) and children
+        active_packages = [p for p in packages if _is_active(p)]
 
-                    item = {
-                        "id": pkg.get("id"),
-                        "subject": pkg.get("subject"),
-                        "status": status,
-                        "dueDate": pkg.get("dueDate"),
-                        "startDate": pkg.get("startDate"),
-                        "parent_id": parent_id,
-                        "parent_title": parent_title,
-                        "url": f"{self.base_url}/work_packages/{pkg.get('id')}/activity" if pkg.get("id") else "",
-                        "children": []
-                    }
-                    active_items.append(item)
-                    logger.info(f"Added active package: {item['subject']} ({status})")
+        # For each active package, determine if it's a root or has a parent
+        # Build result as: active parents (with their active children) + orphaned active children
+        active_ids = {p.get("id") for p in active_packages}
+        active_map = {p.get("id"): _make_item(p) for p in active_packages}
 
-            except Exception as e:
-                logger.warning(f"Error processing package {pkg.get('id')}: {e}")
-                continue
-
-        # Grouping logic
-        item_map = {item["id"]: item for item in active_items}
         top_level = []
-        dummy_parents = {}
+        stub_parents = {}  # parent_id -> stub item for inactive parents that have active children
 
-        for item in active_items:
-            pid = item["parent_id"]
-            if pid:
-                if pid in item_map:
-                    # Parent is also in active items
-                    item_map[pid]["children"].append(item)
-                else:
-                    # Parent is not explicitly "In Progress", create dummy parent
-                    if pid not in dummy_parents:
-                        dummy_parents[pid] = {
+        for pkg in active_packages:
+            pid = _parent_id(pkg)
+            item = active_map[pkg.get("id")]
+
+            if pid is None:
+                # Root-level active package — will collect children later
+                top_level.append(item)
+            elif pid in active_ids:
+                # Parent is itself active — nest under it
+                active_map[pid]["children"].append(item)
+            else:
+                # Parent exists but is not active — create a stub parent for context
+                if pid not in stub_parents:
+                    parent_pkg = all_pkg_map.get(pid)
+                    if parent_pkg:
+                        stub = _make_item(parent_pkg)
+                        stub["status"] = "مهام فرعية نشطة"
+                    else:
+                        stub = {
                             "id": pid,
-                            "subject": item["parent_title"] or f"مجموعة أعمال {pid}",
-                            "status": "مهام فرعية قيد الإنجاز",
+                            "subject": f"مجموعة أعمال {pid}",
+                            "status": "مهام فرعية نشطة",
                             "dueDate": "",
                             "startDate": "",
                             "url": f"{self.base_url}/work_packages/{pid}/activity",
                             "children": []
                         }
-                    dummy_parents[pid]["children"].append(item)
-            else:
-                top_level.append(item)
+                    stub_parents[pid] = stub
+                stub_parents[pid]["children"].append(item)
 
-        top_level.extend(dummy_parents.values())
+        top_level.extend(stub_parents.values())
         top_level.sort(key=lambda x: x["id"])
 
+        # Sort children within each parent by id
+        for item in top_level:
+            item["children"].sort(key=lambda x: x["id"])
+
         summary["active"] = top_level
-        logger.info(f"Summary prepared: {len(summary['active'])} top-level active groups.")
+        logger.info(f"Summary: {len(top_level)} top-level groups, "
+                    f"{sum(len(i['children']) for i in top_level)} nested children.")
         return dict(summary)
